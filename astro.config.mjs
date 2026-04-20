@@ -31,9 +31,6 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 
-// astro.config.mjs
-导入 {  defineConfig  } 来自 'astro/config' ;
-
 import  sentry  from  '@sentry/astro' ; 
 import  spotlightjs  from  '@spotlightjs/astro' ;
 
