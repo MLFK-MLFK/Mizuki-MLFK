@@ -24,17 +24,17 @@ import { LinkPreset } from "./types/config";
 const SITE_LANG = "en"; // 语言代码，例如：'en', 'zh_CN', 'ja' 等。
 const SITE_TIMEZONE = 8; //设置你的网站时区 from -12 to 12 default in UTC+8
 export const siteConfig: SiteConfig = {
-	title: "Mizuki",
-	subtitle: "One demo website",
-	siteURL: "https://mizuki.mysqil.com/", // 请替换为你的站点URL，以斜杠结尾
-	siteStartDate: "2025-01-01", // 站点开始运行日期，用于站点统计组件计算运行天数
+	title: "mkの后花园",
+	subtitle: "mkの后花园",
+	siteURL: "https://mlfk.pages.dev/", // 请替换为你的站点URL，以斜杠结尾
+	siteStartDate: "2026-4-20", // 站点开始运行日期，用于站点统计组件计算运行天数
 
 	timeZone: SITE_TIMEZONE,
 
 	lang: SITE_LANG,
 
 	themeColor: {
-		hue: 240, // 主题色的默认色相，范围从 0 到 360。例如：红色：0，青色：200，蓝绿色：250，粉色：345
+		hue: 345, // 主题色的默认色相，范围从 0 到 360。例如：红色：0，青色：200，蓝绿色：250，粉色：345
 		fixed: false, // 对访问者隐藏主题色选择器
 	},
 
@@ -74,9 +74,9 @@ export const siteConfig: SiteConfig = {
 	},
 
 	bilibili: {
-		vmid: "your-bilibili-vmid", // 在此处设置你的Bilibili用户ID (uid)，例如 "1129280784"
-		fetchOnDev: false, // 是否在开发环境下获取 Bilibili 数据（默认 false）
-		coverMirror: "", // 封面图片镜像源（可选，如果需要使用镜像源，例如 "https://images.weserv.nl/?url="）
+		vmid: "308857431", // 在此处设置你的Bilibili用户ID (uid)，例如 "1129280784"
+		fetchOnDev: true, // 是否在开发环境下获取 Bilibili 数据（默认 false）
+		coverMirror: "https://api.vrchat.cloud/api/1/file/file_e3d931ad-8043-4a6b-bc67-82cbfb0dfe1d/1/file", // 封面图片镜像源（可选，如果需要使用镜像源，例如 "https://images.weserv.nl/?url="）
 		useWebp: true, // 是否使用WebP格式（默认 true）
 
 		// bilibili 观看进度配置说明(可选，如需配置仔细阅读):
