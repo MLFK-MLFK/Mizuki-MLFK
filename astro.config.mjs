@@ -31,6 +31,9 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 
+// 增加事件监听器限制以避免警告
+process.setMaxListeners(20);
+
 // https://astro.build/config
 export default defineConfig({
 	site: siteConfig.siteURL,

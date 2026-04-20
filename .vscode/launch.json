@@ -11,8 +11,8 @@
 				"NODE_ENV": "development"
 			},
 			"serverReadyAction": {
-				"pattern": "Local\\s+(https?://.+)",
-				"uriFormat": "%s",
+				"pattern": "Local\\s+http://localhost:4321",
+				"uriFormat": "http://localhost:4321",
 				"action": "openExternally"
 			}
 		}
