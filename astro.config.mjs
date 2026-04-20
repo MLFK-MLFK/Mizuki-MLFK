@@ -31,8 +31,17 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 
-// 增加事件监听器限制以避免警告
-process.setMaxListeners(20);
+// astro.config.mjs
+导入 {  defineConfig  } 来自 'astro/config' ;
+
+import  sentry  from  '@sentry/astro' ; 
+import  spotlightjs  from  '@spotlightjs/astro' ;
+
+// https://astro.build/config 
+export  default  defineConfig ( { 
+  // 顺序很重要！`sentry()` 应该在 `spotlightjs()` 之前
+  integrations : [ sentry ( ) ,  spotlightjs ( ) ] , 
+} ) ;
 
 // https://astro.build/config
 export default defineConfig({
