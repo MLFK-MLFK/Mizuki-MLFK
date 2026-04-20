@@ -39,12 +39,6 @@ import spotlightjs from '@spotlightjs/astro';
 
 // https://astro.build/config
 export default defineConfig({
-  // Order matters here!  `sentry()` should come before `spotlightjs()`
-  integrations: [sentry(), spotlightjs()],
-});
-
-// https://astro.build/config
-export default defineConfig({
 	site: siteConfig.siteURL,
 	base: "/",
 	trailingSlash: "always",
