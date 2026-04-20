@@ -31,6 +31,18 @@ import { parseDirectiveNode } from "./src/plugins/remark-directive-rehype.js";
 import { remarkFixGithubAdmonitions } from "./src/plugins/remark-fix-github-admonitions.js";
 import { remarkMermaid } from "./src/plugins/remark-mermaid.js";
 
+// astro.config.mjs
+import { defineConfig } from 'astro/config';
+
+import sentry from '@sentry/astro';
+import spotlightjs from '@spotlightjs/astro';
+
+// https://astro.build/config
+export default defineConfig({
+  // Order matters here!  `sentry()` should come before `spotlightjs()`
+  integrations: [sentry(), spotlightjs()],
+});
+
 // https://astro.build/config
 export default defineConfig({
 	site: siteConfig.siteURL,
