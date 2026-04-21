@@ -1,6 +1,6 @@
 ---
 title: Welcome
-published: 2024-04-20
+published: 2026-04-20
 description: "好久不见."
 image: "./1.jpg"
 tags: ["VRChat"]
