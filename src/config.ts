@@ -76,7 +76,8 @@ export const siteConfig: SiteConfig = {
 	bilibili: {
 		vmid: "308857431", // 在此处设置你的Bilibili用户ID (uid)，例如 "1129280784"
 		fetchOnDev: true, // 是否在开发环境下获取 Bilibili 数据（默认 false）
-		coverMirror: "https://api.vrchat.cloud/api/1/file/file_e3d931ad-8043-4a6b-bc67-82cbfb0dfe1d/1/file", // 封面图片镜像源（可选，如果需要使用镜像源，例如 "https://images.weserv.nl/?url="）
+		coverMirror:
+			"https://api.vrchat.cloud/api/1/file/file_e3d931ad-8043-4a6b-bc67-82cbfb0dfe1d/1/file", // 封面图片镜像源（可选，如果需要使用镜像源，例如 "https://images.weserv.nl/?url="）
 		useWebp: true, // 是否使用WebP格式（默认 true）
 
 		// bilibili 观看进度配置说明(可选，如需配置仔细阅读):
@@ -162,7 +163,7 @@ export const siteConfig: SiteConfig = {
 
 		homeText: {
 			enable: true, // 在主页显示自定义文本
-			title: "わたしの部屋", // 主页横幅主标题
+			title: "<mkの后花园>", // 主页横幅主标题
 
 			subtitle: [
 				"特別なことはないけど、君がいると十分です",
@@ -181,7 +182,7 @@ export const siteConfig: SiteConfig = {
 		},
 
 		credit: {
-			enable: false, // 显示横幅图片来源文本
+			enable: true, // 显示横幅图片来源文本
 
 			text: "Describe", // 要显示的来源文本
 			url: "", // （可选）原始艺术品或艺术家页面的 URL 链接
@@ -379,27 +380,12 @@ export const profileConfig: ProfileConfig = {
 		{
 			name: "Bilibili",
 			icon: "fa7-brands:bilibili",
-			url: "https://space.bilibili.com/701864046",
-		},
-		{
-			name: "Gitee",
-			icon: "mdi:git",
-			url: "https://gitee.com/matsuzakayuki",
+			url: "https://space.bilibili.com/308857431",
 		},
 		{
 			name: "GitHub",
 			icon: "fa7-brands:github",
-			url: "https://github.com/matsuzaka-yuki",
-		},
-		{
-			name: "Codeberg",
-			icon: "simple-icons:codeberg",
-			url: "https://codeberg.org",
-		},
-		{
-			name: "Discord",
-			icon: "fa7-brands:discord",
-			url: "https://discord.gg/MqW6TcQtVM",
+			url: "https://github.com/MLFK-MLFK",
 		},
 	],
 };
