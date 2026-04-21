@@ -1,59 +1,40 @@
 ---
-title: Simple Guides for Mizuki
-published: 2024-04-01
-description: "How to use this blog template."
+title: Welcome
+published: 2024-04-20
+description: "见与不见."
 image: "./cover.webp"
-tags: ["Mizuki", "Blogging", "Customization"]
+tags: ["VRChat"]
 category: Guides
 draft: false
 ---
 
+## VRChat主页：
+VRChat个人主页：[ʚMLFKɞ](https://vrchat.com/home/user/usr_e6833979-2a04-47e6-9742-e162ba81ff44)
 
 
-This blog template is built with [Astro](https://astro.build/). For the things that are not mentioned in this guide, you may find the answers in the [Astro Docs](https://docs.astro.build/).
+## VRChat简介：
+MBTI ---> ISFP
 
-## Front-matter of Posts
+好看的皮囊千篇一律，有趣的灵魂万里挑一 - PDL
 
-```yaml
----
-title: My First Blog Post
-published: 2023-09-09
-description: This is the first post of my new Astro blog.
-image: ./cover.jpg
-tags: [Foo, Bar]
-category: Front-end
-draft: false
----
-```
+抚眠屋店员，每周五晚22-23点，欢迎来抚眠屋群组摸摸哟
 
+性格被动，不会主动添加别人好友，怕打扰对方，但基本不会拒绝别人添加好友
 
+不处CP(
+没有砂糖(
+喜欢自由自在(
+不是XNN(
+不是萝莉控(
+是绿玩(
+XP正常(
+不喜欢猎奇(
+是个天才(
 
+个人有极其严重的控制欲，孩子早年缺爱，幻想成为监控视奸每一个好友，如果感到不舒服请及时告知，我会做出对应改变
+你可以称呼我为MK或者Miu Fu Ke(来自好友的音译o.O?)，只要能听懂是叫我，基本都不会介意，什么都会一点，什么都不精通，游戏上至3A，下至4399(单机难玩，沉不住寂寞)，热衷于参加各种事物活动，虽上不知天文，下不知地理，但有什么问题依然都可以来找我喔，挺害怕被遗忘冷落的，希望常常被想起来还有这么一个人空闲的人，也希望有人能对你说，干嘛呢，来不来?
 
-| Attribute     | Description                                                                                                                                                                                                 |
-|---------------|-------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------|
-| `title`       | The title of the post.                                                                                                                                                                                      |
-| `published`   | The date the post was published.                                                                                                                                                                            |
-| `pinned`      | Whether this post is pinned to the top of the post list.                                                                                                                                                   |
-| `priority`    | The priority of the pinned post. Smaller value means higher priority (0, 1, 2...).                                                                                                                          |
-| `description` | A short description of the post. Displayed on index page.                                                                                                                                                   |
-| `image`       | The cover image path of the post.<br/>1. Start with `http://` or `https://`: Use web image<br/>2. Start with `/`: For image in `public` dir<br/>3. With none of the prefixes: Relative to the markdown file |
-| `tags`        | The tags of the post.                                                                                                                                                                                       |
-| `category`    | The category of the post.                                                                                                                                                                                   |
-| `licenseName` | The license name for the post content.                                                                                                                                                                      |
-| `author`      | The author of the post.                                                                                                                                                                                     |
-| `sourceLink`  | The source link or reference for the post content.                                                                                                                                                          |
-| `draft`       | If this post is still a draft, which won't be displayed.                                                                                                                                                    |
+追悔莫及的事物总是美不胜收......
 
-## Where to Place the Post Files
-
-
-
-Your post files should be placed in `src/content/posts/` directory. You can also create sub-directories to better organize your posts and assets.
-
-```
-src/content/posts/
-├── post-1.md
-└── post-2/
-    ├── cover.webp
-    └── index.md
-```
+# 设备
+### PC
