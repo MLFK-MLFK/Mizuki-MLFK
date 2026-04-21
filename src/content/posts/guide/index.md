@@ -4,7 +4,7 @@ published: 2026-04-20
 description: "好久不见."
 image: "./1.jpg"
 tags: ["VRChat"]
-category: Guides
+category: 介绍
 draft: false
 ---
 
