@@ -2,12 +2,13 @@
 title: Welcome
 published: 2024-04-20
 description: "见与不见."
-image: "./cover.webp"
+image: "./1.jpg"
 tags: ["VRChat"]
 category: Guides
 draft: false
 ---
 
+# VRChat
 ## VRChat主页：
 VRChat个人主页：[ʚMLFKɞ](https://vrchat.com/home/user/usr_e6833979-2a04-47e6-9742-e162ba81ff44)
 
@@ -37,4 +38,42 @@ XP正常(
 追悔莫及的事物总是美不胜收......
 
 # 设备
-### PC
+## CPU
+
+	AMD Ryzen 7 9800X3D 8-Core Processor 
+
+	基准速度:	4.70 GHz
+	插槽:	1
+	内核:	8
+	逻辑处理器:	16
+	虚拟化:	已启用
+	L1 缓存:	640 KB
+	L2 缓存:	8.0 MB
+	L3 缓存:	96.0 MB
+
+## RAM
+
+	32.0 GB
+
+	速度:	6000 MT/秒
+	已使用的插槽:	2/2
+	外形规格:	DIMM
+	为硬件保留的内存:	349 MB
+
+## GPU 
+
+	NVIDIA GeForce RTX 5080
+
+	驱动程序版本:	32.0.15.9186
+	驱动程序日期:	2026/1/20
+	DirectX 版本:	12 (FL 12.2)
+	物理位置：	PCI 总线 1、设备 0、功能 0
+
+	专用 GPU 内存	3.5/16.0 GB
+	共享 GPU 内存	0.2/15.8 GB
+	GPU 内存	3.7/31.8 GB
+
+## VR
+
+    Meta Quest 3
+
