@@ -356,6 +356,7 @@ export interface MusicPlayerConfig {
 	id: string; // 歌单ID
 	server: string; // 音乐源服务器
 	type: string; // 音乐类型
+	autoplay: boolean; // 在页面启动时自动播放
 }
 
 export interface FooterConfig {

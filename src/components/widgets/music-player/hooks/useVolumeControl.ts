@@ -141,10 +141,8 @@ export function handleVolumeKeyDown(
 	event: KeyboardEvent,
 	onToggleMute: () => void,
 ) {
-	if (event.key === "Enter" || event.key === " ") {
+	if (event.key === "Enter") {
 		event.preventDefault();
-		if (event.key === "Enter") {
-			onToggleMute();
-		}
+		onToggleMute();
 	}
 }

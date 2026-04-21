@@ -14,14 +14,14 @@ export type DeviceCategory = Record<string, Device[]> & {
 };
 
 export const devicesData: DeviceCategory = {
-	OnePlus: [
+	PC: [
 		{
-			name: "OnePlus 13T",
+			name: "Windows 11",
 			image: "/images/device/oneplus13t.webp",
-			specs: "Gray / 16G + 1TB",
+			specs: "25H2",
 			description:
-				"Flagship performance, Hasselblad imaging, 80W SuperVOOC.",
-			link: "https://www.oneplus.com/cn/13t",
+				"AMD Ryzen 7 9800X3D, 32GB RAM, NVIDIA GeForce RTX 5080 OC",
+			link: "https://www.microsoft.com/",
 		},
 	],
 	Router: [

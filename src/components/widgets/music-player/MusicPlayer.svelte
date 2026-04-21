@@ -153,12 +153,7 @@
 			return;
 		}
 
-		if (
-			event.key === "Enter" ||
-			event.key === " " ||
-			event.key === "m" ||
-			event.key === "M"
-		) {
+		if (event.key === "Enter" || event.key === "m" || event.key === "M") {
 			event.preventDefault();
 			toggleMute();
 		}
