@@ -50,9 +50,9 @@ XP正常（
 # 串流直播
 ## （直播无审查）（需要IPv6支持）（不定时开启，可能大多数处于停摆状态，主要适用于VRC当中使用）
 ----------------------------------
-## [浏览器播放地址（低延迟）](VRChat.MLFK.Top:2082/MLFK)
-## [浏览器播放地址兼容模式(HLS格式，.m3u8格式)(高延迟)](VRChat.MLFK.Top:2082/MLFK/index.m3u8)
-## [VRC播放器地址（低延迟）](rtspt://VRChat.MLFK.Top:2052/MLFK)
+## [浏览器播放地址（低延迟）](Play.the.Need.IPv6.VRChat.MLFK.Top:2082/MLFK)
+## [浏览器播放地址兼容模式(HLS格式，.m3u8格式)(高延迟)](Play.the.Need.IPv6.VRChat.MLFK.Top:2082/MLFK/index.m3u8)
+## [VRC播放器地址（低延迟）](rtspt://Play.the.Need.IPv6.VRChat.MLFK.Top:2052/MLFK)
 ----------------------------------
 
 
