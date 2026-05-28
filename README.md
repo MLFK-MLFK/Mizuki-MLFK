@@ -1,3 +1,8 @@
+请注意，这是fork仓库，原仓库地址https://github.com/LyraVoid/Mizuki
+遵循了原仓库的开源协议，所有fork改动均已开源，提供免费发放
+因个人引用原因，仓库内包含了个人网站信息
+如果您执意要用该fork仓库，请注意部分代码内嵌的改动，可能包含了大量对您无用信息
+
 # 🌸 Mizuki 
 <img align='right' src='logo.png' width='200px' alt="Mizuki logo">
 
