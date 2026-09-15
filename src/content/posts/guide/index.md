@@ -48,33 +48,6 @@ XP正常（
 
 
 
-
-# 串流直播
-## （直播无审查）（需要IPv6支持）（不定时开启，可能大多数处于停摆状态，主要适用于VRC当中使用）
-----------------------------------
-## 快捷复制
-## 浏览器播放地址（低延迟）(右侧按钮一键复制)
-	Need.IPv6.Can.Playing.Browser.MLFK.Top:2082/MLFK
-
-## 浏览器 & VRC播放,双用兼容模式(HLS格式，.m3u8格式)(高延迟)(右侧按钮一键复制)
-	Need.IPv6.Can.Playing.Browser.MLFK.Top:2082/MLFK/index.m3u8
-
-## VRC专属播放器地址（低延迟）(右侧按钮一键复制)
-	rtspt://Need.IPv6.Can.Playing.VRChat.MLFK.Top:2052/MLFK
-
-## 浏览器鼠标中键快速跳转（部分浏览器跳转后不会自动访问，需要手动复制粘贴前往）
-## [浏览器播放地址（低延迟）](Need.IPv6.Can.Playing.Browser.MLFK.Top:2082/MLFK)
-## [浏览器 & VRC播放,双用兼容模式(HLS格式，.m3u8格式)(高延迟)](Need.IPv6.Can.Playing.Browser.MLFK.Top:2082/MLFK/index.m3u8)
-## [VRC播放器地址（低延迟）](rtspt://Need.IPv6.Can.Playing.VRChat.MLFK.Top:2052/MLFK)
-
-## 如果需要短链方便记忆，上方任意链接只保留到VRChat.MLFK.Top:***即可
-## （即上方链接从***.MLFK字段之前可全删，因VRC播放器的特殊性，需保留rtspt前缀）
-----------------------------------
-
-
-
-
-
 # 设备
 ## CPU
 
