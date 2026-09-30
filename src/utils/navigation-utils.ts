@@ -3,6 +3,8 @@
  * 提供统一的页面导航功能，支持 Swup 无刷新跳转
  */
 
+import { HOME_PATH } from "@/constants/constants";
+
 /**
  * 导航到指定页面
  * @param url 目标页面URL
@@ -244,11 +246,14 @@ export function getCurrentPath(): string {
 }
 
 /**
- * 检查是否为首页
+ * 检查是否为首页（分页文章列表，/home/）
+ *
+ * 两种写法都留着（带斜杠 / 不带斜杠），是为了不依赖 HOME_PATH 末尾到底写没写 "/"，
+ * 以后改那个常量时这里不会悄悄失灵。站点根 "/" 是起始页，不算首页。
  */
 export function isHomePage(): boolean {
 	const path = getCurrentPath();
-	return path === "/" || path === "";
+	return path === HOME_PATH || path === HOME_PATH.replace(/\/$/, "");
 }
 
 /**

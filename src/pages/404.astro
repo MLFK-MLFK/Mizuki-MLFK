@@ -4,6 +4,8 @@ import { Icon } from "astro-icon/components";
 import I18nKey from "../i18n/i18nKey";
 import { i18n } from "../i18n/translation";
 import MainGridLayout from "../layouts/MainGridLayout.astro";
+import { HOME_PATH } from "../constants/constants";
+import { url } from "../utils/url-utils";
 ---
 
 <MainGridLayout
@@ -45,9 +47,10 @@ import MainGridLayout from "../layouts/MainGridLayout.astro";
 				{i18n(I18nKey.notFoundDescription)}
 			</p>
 
-			<!-- 返回首页按钮 -->
+			<!-- 返回首页按钮。首页 = 文章列表 /home/（根路径是起始页，
+			     点过去得先等 5 秒开屏才看得到内容 —— 迷路了不该再罚一次）。 -->
 			<a
-				href="/"
+				href={url(HOME_PATH)}
 				class="inline-flex items-center gap-2 px-6 py-3 bg-[var(--primary)] text-white rounded-[var(--radius-large)] hover:opacity-95 transition-colors transition-transform duration-200 font-medium"
 			>
 				<Icon name="material-symbols:home" class="text-xl" />

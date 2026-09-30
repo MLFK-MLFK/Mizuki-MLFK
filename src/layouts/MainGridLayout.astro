@@ -12,7 +12,7 @@ import type { MarkdownHeading } from "astro";
 import { Icon } from "astro-icon/components";
 
 import { fullscreenWallpaperConfig, siteConfig } from "../config";
-import { BANNER_HEIGHT } from "../constants/constants";
+import { BANNER_HEIGHT, HOME_PATH } from "../constants/constants";
 import {
 	calculateGridLayout,
 	getBannerImages,
@@ -20,6 +20,7 @@ import {
 	getTransparencyClass,
 	shouldEnableTransparency,
 } from "../utils/grid-layout-utils";
+import { pathsEqual } from "../utils/url-utils";
 import { widgetManager } from "../utils/widget-manager";
 import Layout from "./Layout.astro";
 import GridScripts from "./partials/GridScripts.astro";
@@ -49,8 +50,8 @@ const {
 const hasBannerCredit = siteConfig.banner.credit.enable;
 const hasBannerLink = !!siteConfig.banner.credit.url;
 
-// 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+// 是否为「首页」= 文章列表 /home/（根路径已让给起始页，那一页不走这个布局）
+const isHomePage = pathsEqual(Astro.url.pathname, HOME_PATH);
 // 手机端非首页不显示banner的CSS类
 const mobileNonHomeBannerClass = !isHomePage ? "mobile-hide-banner" : "";
 

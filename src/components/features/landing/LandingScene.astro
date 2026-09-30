@@ -1,0 +1,33 @@
+---
+/**
+ * 起始页背景场景层（纯装饰，全部 aria-hidden）
+ *
+ * 叠加顺序（由下至上，z 序即 DOM 顺序）：
+ *   柔光色场 → 极光帘幕 → 杂志色块 → 印刷网点 → 同心墨环
+ *   → 点阵场（含指针高亮）→ 指针柔光 → 缓扫光带 → 颗粒 → 暗角
+ *
+ * 取向是「杂志印刷」：靠实心色块的分量、网点的肌理、油墨洇开的柔度出层次，
+ * 而不是靠发光堆叠。全屏 mix-blend-mode 刻意压在 3 层（aurora / sweep / grain），
+ * 这是移动端不掉帧的上限。
+ *
+ * 所有层都是 .lp-scene 的 absolute 子元素、pointer-events:none，
+ * 不参与布局，对文档高度零影响。
+ *
+ * 样式见 src/styles/landing/landing.css
+ */
+---
+
+<div class="lp-scene" data-lp-scene aria-hidden="true">
+	<div class="lp-mesh"></div>
+	<div class="lp-aurora"></div>
+	<div class="lp-plates"></div>
+	<div class="lp-halftone"></div>
+	<div class="lp-rings"></div>
+
+	<div class="lp-dots"><span class="lp-dots-hot" data-lp-dots-hot></span></div>
+
+	<div class="lp-spot" data-lp-spot></div>
+	<div class="lp-sweep"></div>
+	<div class="lp-grain"></div>
+	<div class="lp-vignette"></div>
+</div>

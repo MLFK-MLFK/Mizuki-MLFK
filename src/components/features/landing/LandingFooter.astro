@@ -1,0 +1,56 @@
+---
+import { Icon } from "astro-icon/components";
+import { profileConfig, siteConfig } from "@/config";
+
+/**
+ * 起始页页脚：单行。
+ *
+ * 整页锁在一屏内，所以这里只留版权 + 关注 + 引擎署名。
+ * 原先的四列（品牌 / 浏览 / 更多 / 关注）光是纵向就吃掉 200px，
+ * 站内导航交给 Bento 的「快捷入口」卡，不在这里重复一遍。
+ */
+
+const plainTitle = (siteConfig.title ?? "").replace(/^<|>$/g, "");
+const year = new Date().getFullYear();
+
+const socialLinks = (profileConfig.links ?? []).map((link) => ({
+	name: link.name,
+	href: link.url,
+	icon: link.icon,
+}));
+---
+
+<footer class="lp-foot">
+	<div class="lp-foot-inner">
+		<p class="lp-foot-copy">
+			© {year} {profileConfig.name} · {plainTitle}
+		</p>
+
+		<div class="lp-foot-social">
+			{
+				socialLinks.map((link) => (
+					<a
+						class="lp-foot-link"
+						href={link.href}
+						target="_blank"
+						rel="nofollow noopener noreferrer"
+					>
+						<Icon name={link.icon} />
+						<span>{link.name}</span>
+					</a>
+				))
+			}
+		</div>
+
+		<p class="lp-foot-copy lp-foot-copy--dim">
+			由 <a href="https://astro.build" target="_blank" rel="noopener noreferrer">Astro</a> 驱动 · 主题
+			<a
+				href="https://github.com/LyraVoid/Mizuki"
+				target="_blank"
+				rel="noopener noreferrer"
+			>
+				Mizuki
+			</a>
+		</p>
+	</div>
+</footer>

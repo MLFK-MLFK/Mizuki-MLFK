@@ -3,12 +3,13 @@ import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 import { Icon } from "astro-icon/components";
 
+import { HOME_PATH } from "@/constants/constants";
 import { getCategoryList, getSortedPostsList } from "@/utils/content-utils";
 import { getCategoryUrl, url } from "@/utils/url-utils";
 
 const categories = await getCategoryList();
 const totalPosts = (await getSortedPostsList()).length;
-const homeUrl = url("/");
+const homeUrl = url(HOME_PATH);
 const archiveUrl = url("/archive/");
 ---
 
@@ -146,18 +147,19 @@ const archiveUrl = url("/archive/");
 		const archivePath = (
 			bar.getAttribute("data-archive-path") || "/archive"
 		).replace(/\/$/, "");
-		const isHome =
-			pathname === homePath || pathname === "" || pathname === "/";
+		// 首页判定完全交给 data-home-path（现在是 /home/），不再兜底 "/"。
+		// 根路径已经是起始页 —— 那里根本没有这个分类栏，留一条 "pathname === ''"
+		// 的兜底只会在以后有人给起始页加分类栏时帮倒忙。
+		const isHome = homePath !== "" && pathname === homePath;
 		const isArchive = pathname === archivePath;
-		// 分页页面（如 /2/, /3/）也属于首页的延续
+		// 分页页面（/home/2、/home/3）也属于首页的延续
 		const isHomePagination =
-			/^\/\d+$/.test(pathname) ||
-			(homePath !== "" &&
-				new RegExp(
-					"^" +
-						homePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
-						"\\/\\d+$",
-				).test(pathname));
+			homePath !== "" &&
+			new RegExp(
+				"^" +
+					homePath.replace(/[.*+?^${}()|[\]\\]/g, "\\$&") +
+					"\\/\\d+$",
+			).test(pathname);
 
 		// 在首页、首页分页和归档页显示
 		if (!isHome && !isHomePagination && !isArchive) {

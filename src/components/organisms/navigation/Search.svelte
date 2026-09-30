@@ -2,6 +2,7 @@
 	import I18nKey from "@i18n/i18nKey";
 	import { i18n } from "@i18n/translation";
 	import Icon from "@iconify/svelte";
+	import { HOME_PATH } from "@/constants/constants";
 	import { navigateToPage } from "@utils/navigation-utils";
 	import { url } from "@utils/url-utils";
 	import { onDestroy, onMount } from "svelte";
@@ -21,7 +22,7 @@
 
 	const fakeResult: SearchResult[] = [
 		{
-			url: url("/"),
+			url: url(HOME_PATH),
 			meta: {
 				title: "This Is a Fake Search Result",
 			},
@@ -29,7 +30,7 @@
 				"Because the search cannot work in the <mark>dev</mark> environment.",
 		},
 		{
-			url: url("/"),
+			url: url(HOME_PATH),
 			meta: {
 				title: "If You Want to Test the Search",
 			},

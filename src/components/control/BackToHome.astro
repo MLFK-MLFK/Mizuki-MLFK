@@ -2,6 +2,14 @@
 import FloatingButton from "@components/common/FloatingButton.astro";
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
+import { HOME_PATH } from "@/constants/constants";
+import { url } from "@/utils/url-utils";
+
+// 「返回首页」= 回文章列表 /home/，不是站点根。
+// 根路径现在是起始页：指过去不但要多等 5 秒开屏，而且这个按钮的显隐判定是
+// 「path !== homePath 就显示」，homeUrl 还写 "/" 的话，你已经站在 /home/ 上了
+// 它也不肯藏起来 —— 点一下才发现被送去了别的地方。
+const homeUrl = url(HOME_PATH);
 ---
 
 <FloatingButton
@@ -12,7 +20,7 @@ import { i18n } from "@i18n/translation";
 	class="hide"
 />
 
-<script is:raw is:inline define:vars={{ homeUrl: "/" }}>
+<script is:raw is:inline define:vars={{ homeUrl }}>
 	window.backToHome = function () {
 		if (window.swup) {
 			window.swup.navigate(homeUrl);
@@ -22,7 +30,7 @@ import { i18n } from "@i18n/translation";
 	};
 </script>
 
-<script is:inline define:vars={{ homeUrl: "/" }}>
+<script is:inline define:vars={{ homeUrl }}>
 	function updateBackToHomeVisibility() {
 		const btn = document.getElementById("back-to-home-btn");
 		if (!btn) {

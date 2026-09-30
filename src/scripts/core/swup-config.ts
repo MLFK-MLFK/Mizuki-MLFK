@@ -3,6 +3,8 @@
  * 提供页面过渡动画的配置常量和类型定义
  */
 
+import { DEFAULT_THEME } from "@constants/constants";
+
 // Banner 高度常量
 export const BANNER_HEIGHT = 35;
 export const BANNER_HEIGHT_EXTEND = 30;
@@ -92,6 +94,11 @@ export const THEME_CONFIG = {
 	// 主题值
 	lightMode: "light",
 	darkMode: "dark",
+
+	// 无存储时的默认主题。必须与 constants.ts 的 DEFAULT_THEME 共用真源，
+	// 否则首帧（HeadTags 内联脚本）与 swup 换页同步会用两套不同的默认值，
+	// 表现为：首屏是暗色，一导航就被改回浅色。
+	defaultMode: DEFAULT_THEME,
 
 	// Expressive Code 主题映射
 	lightExpressiveTheme: "github-light",

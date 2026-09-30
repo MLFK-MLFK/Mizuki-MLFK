@@ -1,0 +1,2050 @@
+/* =============================================================================
+ * start.astro 起始页专用样式
+ *
+ * 本文件只被 src/pages/start.astro 引入（普通 .css，全局作用域），
+ * 所有选择器都收在 .lp 之下，不触碰 main.css / Layout.astro / 首页，
+ * 因此对站内其它页面零影响。
+ *
+ * 视觉基调：极简现代 —— 柔光网格背景 + 点阵场 + 细颗粒，
+ * 大面积留白、1px 发丝描边、克制的强调色。
+ *
+ * 主题：跟随站点明暗（.dark 挂在 <html> 上，由 HeadTags 在首帧前写入）。
+ *   浅色为默认值，:root.dark 下覆盖同一组 token。
+ *   --lp-accent / --lp-accent-2 / --lp-accent-3 由 start.astro 在 frontmatter
+ *   里依据 siteConfig.themeColor.hue 计算后以内联 style 注入，这里只放兜底值。
+ * ============================================================================= */
+
+/* ---------- Design tokens ---------- */
+
+.lp {
+	/* 色相来源：优先用站点运行时写在 :root 上的 --hue（跟随色相滑块），
+	 * 其次用 start.astro 构建期内联的 --lp-hue，最后兜底 345。
+	 * 只传色相、把明度/彩度交给主题 token，深色下的强调色才不会被内联值压掉。 */
+	--lp-h: var(--hue, var(--lp-hue, 345));
+	--lp-accent: oklch(0.62 0.19 var(--lp-h));
+	--lp-accent-2: oklch(0.58 0.2 calc(var(--lp-h) + 70));
+	--lp-accent-3: oklch(0.62 0.16 calc(var(--lp-h) - 135));
+
+	/* 浅色主题 */
+	--lp-bg: oklch(0.99 0.003 285);
+	--lp-ink: oklch(0.2 0.018 285);
+	--lp-ink-dim: oklch(0.45 0.016 285);
+	--lp-ink-faint: oklch(0.62 0.014 285);
+
+	--lp-line: rgba(16, 16, 32, 0.1);
+	--lp-line-strong: rgba(16, 16, 32, 0.18);
+	--lp-surface: rgba(255, 255, 255, 0.7);
+	--lp-surface-2: rgba(255, 255, 255, 0.45);
+	--lp-hover: rgba(16, 16, 32, 0.04);
+
+	--lp-shadow: 0 1px 2px rgba(16, 16, 32, 0.04), 0 14px 34px -16px rgba(16, 16, 32, 0.14);
+	--lp-shadow-lift: 0 2px 6px rgba(16, 16, 32, 0.06), 0 28px 60px -22px rgba(16, 16, 32, 0.22);
+
+	/* 背景光斑强度 / 点阵颜色 / 颗粒强度 */
+	--lp-aura-strength: 26%;
+	--lp-mesh-opacity: 0.75;
+	--lp-dot: rgba(16, 16, 32, 0.14);
+	--lp-dot-hot: color-mix(in oklch, var(--lp-accent) 55%, transparent);
+	--lp-grain-opacity: 0.022;
+	--lp-vignette: radial-gradient(125% 100% at 50% 42%, transparent 52%, rgba(16, 16, 32, 0.07) 100%);
+
+	/* CTA 走「菱形磨砂玻璃」：一层半透明玻璃 + 墨色字，强调色只落在呼吸光晕
+	   和悬停描边上。字色一律取 --lp-ink，于是浅色下是「深字压亮玻璃」、
+	   深色下是「亮字压暗玻璃」，两边对比度都在 12:1 以上。
+	   玻璃本身的明暗跟着主题 token 走，所以拖站点色相滑块也不会把对比度拖垮。
+	   刻意不用「强调色填充 + 白字」——深色主题下强调色是 oklch(0.74) 的亮色，
+	   白字压上去只有约 2:1，连 WCAG 大字的 3:1 门槛都够不着。 */
+	--lp-glass-hi: rgba(255, 255, 255, 0.78);
+	--lp-glass-lo: rgba(255, 255, 255, 0.34);
+	--lp-glass-edge: rgba(255, 255, 255, 0.85);
+	--lp-glass-edge-hi: #fff;
+	--lp-glass-ink: var(--lp-ink);
+	--lp-glass-ring: color-mix(in oklch, var(--lp-accent) 55%, transparent);
+
+	/* 背景新增层的参数（明暗各一套，见 :root.dark） */
+	--lp-aurora-opacity: 0.5;
+	--lp-plates-opacity: 0.55;
+	--lp-halftone: rgba(16, 16, 32, 0.055);
+	--lp-ring: color-mix(in oklch, var(--lp-accent) 22%, transparent);
+	--lp-sweep-opacity: 0.34;
+	/* 指针视差：JS 写入 -1..1，触屏恒为 0 */
+	--lp-tilt-x: 0;
+	--lp-tilt-y: 0;
+
+	/* 开屏期间把内容入场整体推迟到帘子开始动的那一刻。
+	   没开屏时回落 0s —— 否则不开屏的用户要白等 2 秒。 */
+	--lp-intro-delay: 0s;
+
+	--lp-radius: 1.1rem;
+	--lp-radius-sm: 0.7rem;
+	--lp-font-mono: "JetBrains Mono Variable", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+	--lp-ease: cubic-bezier(0.22, 0.8, 0.24, 1);
+
+	/* 单屏锁：整页恒等于一屏，不产生滚动条。
+	   用 100svh 而不是 100vh —— 移动端地址栏收起时 vh 不变，底部会多出一截
+	   可滚动的空白；dvh 又会随地址栏实时变化，让内容一直抖。
+	   也不用 min-height：那只是下限，内容一多照样滚。 */
+	position: relative;
+	height: 100svh;
+	display: flex;
+	flex-direction: column;
+	isolation: isolate;
+	color: var(--lp-ink);
+	background: var(--lp-bg);
+	/* 卡片 hover 上抬、柔光光斑都可能溢出边缘，统一裁掉 */
+	overflow: hidden;
+}
+
+:root.dark .lp {
+	/* 深色底上把明度提上去，否则强调色会糊在背景里 */
+	--lp-accent: oklch(0.74 0.17 var(--lp-h));
+	--lp-accent-2: oklch(0.7 0.18 calc(var(--lp-h) + 70));
+	--lp-accent-3: oklch(0.76 0.14 calc(var(--lp-h) - 135));
+
+	--lp-bg: oklch(0.17 0.008 285);
+	--lp-ink: oklch(0.97 0.004 285);
+	--lp-ink-dim: oklch(0.79 0.008 285);
+	--lp-ink-faint: oklch(0.63 0.01 285);
+
+	--lp-line: rgba(255, 255, 255, 0.1);
+	--lp-line-strong: rgba(255, 255, 255, 0.18);
+	--lp-surface: rgba(255, 255, 255, 0.05);
+	--lp-surface-2: rgba(255, 255, 255, 0.028);
+	--lp-hover: rgba(255, 255, 255, 0.06);
+
+	--lp-shadow: 0 1px 2px rgba(0, 0, 0, 0.35), 0 16px 40px -18px rgba(0, 0, 0, 0.6);
+	--lp-shadow-lift: 0 2px 6px rgba(0, 0, 0, 0.45), 0 30px 66px -24px rgba(0, 0, 0, 0.75);
+
+	--lp-aura-strength: 34%;
+	--lp-mesh-opacity: 0.7;
+	--lp-dot: rgba(255, 255, 255, 0.11);
+	--lp-dot-hot: color-mix(in oklch, var(--lp-accent) 62%, transparent);
+	--lp-grain-opacity: 0.032;
+	--lp-vignette: radial-gradient(125% 100% at 50% 42%, transparent 48%, rgba(0, 0, 0, 0.34) 100%);
+
+	--lp-aurora-opacity: 0.6;
+	--lp-plates-opacity: 0.45;
+	--lp-halftone: rgba(255, 255, 255, 0.05);
+	--lp-ring: color-mix(in oklch, var(--lp-accent) 30%, transparent);
+	--lp-sweep-opacity: 0.5;
+
+	/* 深色玻璃：白色只留很少一点，主要靠 backdrop-filter 把背景的柔光透上来。
+	   给多了会糊成一块灰板，玻璃感就没了。 */
+	--lp-glass-hi: rgba(255, 255, 255, 0.16);
+	--lp-glass-lo: rgba(255, 255, 255, 0.045);
+	--lp-glass-edge: rgba(255, 255, 255, 0.22);
+	--lp-glass-edge-hi: rgba(255, 255, 255, 0.42);
+	--lp-glass-ring: color-mix(in oklch, var(--lp-accent) 62%, transparent);
+}
+
+/* Layout.astro 的 <body> 带 min-h-screen（min-height: 100vh）。移动端 100vh 是
+ * 「地址栏收起」的大视口，比 .lp 的 100svh 高，底部会凭空多出一截可滚动的空白。
+ * 所以这里把 body 也钉死在 100svh 并关掉溢出。:has 保证只在 /start/ 生效，
+ * 离开这一页（#lp-root 被 swup 换掉）规则自动失效。 */
+body:has(#lp-root) {
+	height: 100svh;
+	min-height: 0;
+	overflow: hidden;
+}
+
+/* Layout.astro 在 navbarTransparentMode 为 full/semifull 时会往 body 里塞一条
+ * 顶部渐变高光（fixed + z-index 20）。它是 body 的直接子元素、出现在 .lp 之前，
+ * 只能从起始页反选关掉；不改 Layout.astro，也只在 /start/ 生效。
+ * 不关掉的话，深色下起始页顶部会糊上一层白色雾带。 */
+body:has(#lp-root) .top-gradient-highlight {
+	display: none;
+}
+
+/* 同理，Layout.astro 里还有三个 body 直接子元素的全屏浮层：
+ *   #page-progress-bar      顶部阅读进度条
+ *   .music-player / .music-player-fab-anchor   右下角音乐悬浮钮（z-50 / z-55）
+ *   .pio-container          看板娘
+ * 它们都在 .lp 的 isolation 层叠上下文之外，z 序跟 .lp 同一层比较 ——
+ * 于是会浮在开屏遮罩（z-60，但在 .lp 内部）之上「穿帘而出」。
+ * 这里一并关掉，切到内容页后它们照常恢复。 */
+body:has(#lp-root) #page-progress-bar,
+body:has(#lp-root) .music-player,
+body:has(#lp-root) .music-player-fab-anchor,
+body:has(#lp-root) .pio-container {
+	display: none !important;
+}
+
+/* =============================================================================
+ * 场景层 —— 柔光网格 + 点阵场 + 颗粒
+ *
+ * 全部 fixed / pointer-events:none / aria-hidden，纯装饰。
+ * 对比上一版的复古霓虹（落日 + 透视网格 + 扫描线 + canvas 星空），
+ * 这里刻意只保留「大色块柔光 + 细点阵 + 静态颗粒」三层，
+ * 靠留白与发丝描边出质感，而不是靠发光堆叠。
+ * ============================================================================= */
+
+.lp-scene {
+	position: fixed;
+	inset: 0;
+	z-index: 0;
+	pointer-events: none;
+	overflow: hidden;
+	background: var(--lp-bg);
+}
+
+/* ① 柔光色场：三团极大半径、极低饱和的色斑，缓慢漂移。
+ * 这里刻意去掉了原来的 filter: blur(30px) —— 全屏 30px 模糊是整套背景里最贵的一层，
+ * 而三团 radial-gradient 的边缘本来就够软，把透明过渡拉长即可，
+ * 观感几乎不变，合成成本归零。 */
+.lp-mesh {
+	position: absolute;
+	inset: -25%;
+	opacity: var(--lp-mesh-opacity);
+	background:
+		radial-gradient(
+			42% 38% at 16% 10%,
+			color-mix(in oklch, var(--lp-accent) var(--lp-aura-strength), transparent) 0%,
+			transparent 76%
+		),
+		radial-gradient(
+			40% 36% at 86% 16%,
+			color-mix(in oklch, var(--lp-accent-3) var(--lp-aura-strength), transparent) 0%,
+			transparent 76%
+		),
+		radial-gradient(
+			48% 44% at 64% 92%,
+			color-mix(in oklch, var(--lp-accent-2) var(--lp-aura-strength), transparent) 0%,
+			transparent 78%
+		);
+	will-change: transform;
+	animation: lp-mesh-drift 46s ease-in-out infinite alternate;
+}
+
+@keyframes lp-mesh-drift {
+	from { transform: translate3d(-1.5%, -1%, 0) scale(1); }
+	to { transform: translate3d(2%, 1.5%, 0) scale(1.08); }
+}
+
+/* ② 极光帘幕：三条被拉长的椭圆色带缓慢旋转漂移，是「油墨在丝绒上洇开」的主笔。
+ * 浅色用 soft-light（只微提色、不推白），深色必须换 screen，否则色带看不见。 */
+.lp-aurora {
+	position: absolute;
+	inset: -32%;
+	opacity: var(--lp-aurora-opacity);
+	mix-blend-mode: soft-light;
+	background:
+		radial-gradient(
+			118% 22% at 16% 62%,
+			color-mix(in oklch, var(--lp-accent) 78%, transparent),
+			transparent 70%
+		),
+		radial-gradient(
+			112% 18% at 52% 34%,
+			color-mix(in oklch, var(--lp-accent-2) 70%, transparent),
+			transparent 68%
+		),
+		radial-gradient(
+			126% 24% at 86% 70%,
+			color-mix(in oklch, var(--lp-accent-3) 66%, transparent),
+			transparent 72%
+		);
+	translate: calc(var(--lp-tilt-x) * 10px) calc(var(--lp-tilt-y) * 8px);
+	transform: rotate(-6deg);
+	will-change: transform;
+	animation: lp-aurora 52s ease-in-out infinite alternate;
+}
+
+:root.dark .lp-aurora {
+	mix-blend-mode: screen;
+}
+
+@keyframes lp-aurora {
+	from { transform: rotate(-6deg) translate3d(-2.5%, 0, 0) scale(1); }
+	to { transform: rotate(4deg) translate3d(2.5%, -2%, 0) scale(1.09); }
+}
+
+/* ③ 杂志色块：一条硬边斜切 + 一角柔色。
+ * 「有分量的色块」靠的就是这条硬边，所以这里不用任何 blend-mode（省一次全屏混合）。 */
+.lp-plates {
+	position: absolute;
+	inset: 0;
+	opacity: var(--lp-plates-opacity);
+	background:
+		linear-gradient(
+			100deg,
+			transparent 0 57%,
+			color-mix(in oklch, var(--lp-accent) 11%, transparent) 57% 100%
+		),
+		radial-gradient(
+			70% 55% at 8% 96%,
+			color-mix(in oklch, var(--lp-accent-3) 10%, transparent),
+			transparent 70%
+		);
+	animation: lp-plates 64s ease-in-out infinite alternate;
+}
+
+@keyframes lp-plates {
+	from { transform: translate3d(-1%, 0, 0); }
+	to { transform: translate3d(1.5%, -1%, 0); }
+}
+
+/* ④ 印刷网点：四色印刷的网点，掩到对角两角。纯 rgba 点阵，无 blend-mode。
+ * 周期 11px 与点阵层的 26px 不成整数倍，不会撞出摩尔纹。 */
+.lp-halftone {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(circle, var(--lp-halftone) 1.1px, transparent 1.9px);
+	background-size: 11px 11px;
+	-webkit-mask-image:
+		radial-gradient(58% 44% at 88% 12%, #000 0%, transparent 78%),
+		radial-gradient(50% 40% at 10% 88%, #000 0%, transparent 80%);
+	mask-image:
+		radial-gradient(58% 44% at 88% 12%, #000 0%, transparent 78%),
+		radial-gradient(50% 40% at 10% 88%, #000 0%, transparent 80%);
+}
+
+/* ⑤ 同心墨环：偏右上的同心环阵，只做 scale 呼吸（同心圆旋转看不出变化）。
+ * 用 min(150vmax, 2400px) 封顶，否则 4K 屏上单层纹理就是几十 MB。
+ * 内外都被 mask 挖掉，读起来才是「环」而不是「靶心」，也不会跟标题抢视觉。 */
+.lp-rings {
+	position: absolute;
+	left: 64%;
+	top: 34%;
+	width: min(150vmax, 2400px);
+	aspect-ratio: 1;
+	border-radius: 50%;
+	translate: calc(-50% + var(--lp-tilt-x) * -5px) calc(-50% + var(--lp-tilt-y) * -5px);
+	background-image: repeating-radial-gradient(
+		circle,
+		var(--lp-ring) 0 1.5px,
+		transparent 1.5px 84px
+	);
+	-webkit-mask-image: radial-gradient(circle, transparent 0 9%, #000 28%, transparent 62%);
+	mask-image: radial-gradient(circle, transparent 0 9%, #000 28%, transparent 62%);
+	will-change: transform;
+	animation: lp-rings 34s ease-in-out infinite alternate;
+}
+
+@keyframes lp-rings {
+	from { transform: scale(0.94); opacity: 0.26; }
+	to { transform: scale(1.06); opacity: 0.58; }
+}
+
+/* ⑥ 缓扫光带：全屏唯一一处「明显的动」。22vh 高的柔带从屏顶扫到屏底，
+ * 终帧必须落在屏外 —— reduced-motion 把 duration 压到 0.001ms 时，
+ * 动画会直接落到终态 translate3d(0,126vh,0)，亮带才不会卡在屏幕中央。 */
+.lp-sweep {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 22vh;
+	background: linear-gradient(
+		to bottom,
+		transparent,
+		color-mix(in oklch, var(--lp-accent) 12%, transparent) 50%,
+		transparent
+	);
+	mix-blend-mode: screen;
+	opacity: var(--lp-sweep-opacity);
+	transform: translate3d(0, -26vh, 0);
+	will-change: transform;
+	animation: lp-sweep 28s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+}
+
+@keyframes lp-sweep {
+	from { transform: translate3d(0, -26vh, 0); }
+	to { transform: translate3d(0, 126vh, 0); }
+}
+
+/* 点阵场：细点网格 + 径向遮罩，边缘自然淡出 */
+.lp-dots {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(circle, var(--lp-dot) 1px, transparent 1.4px);
+	background-size: 26px 26px;
+	-webkit-mask-image: radial-gradient(ellipse 80% 66% at 50% 40%, #000 0%, transparent 80%);
+	mask-image: radial-gradient(ellipse 80% 66% at 50% 40%, #000 0%, transparent 80%);
+	/* 跟着指针做一点反向位移，和极光/墨环一起形成纵深。
+	   触屏下 --lp-tilt-* 恒为 0（startPointerAura 在 hover:none 时直接 return）。 */
+	translate: calc(var(--lp-tilt-x) * 6px) calc(var(--lp-tilt-y) * 6px);
+}
+
+/* 指针附近的点阵被点亮：父级遮罩会一并裁切子级，所以两层遮罩能自然相乘 */
+.lp-dots-hot {
+	position: absolute;
+	inset: 0;
+	background-image: radial-gradient(circle, var(--lp-dot-hot) 1px, transparent 1.6px);
+	background-size: 26px 26px;
+	opacity: 0;
+	-webkit-mask-image: radial-gradient(
+		circle 18rem at var(--lp-px, 50%) var(--lp-py, 32%),
+		#000 0%,
+		transparent 72%
+	);
+	mask-image: radial-gradient(
+		circle 18rem at var(--lp-px, 50%) var(--lp-py, 32%),
+		#000 0%,
+		transparent 72%
+	);
+	transition: opacity 0.5s ease;
+}
+
+/* 指针柔光 */
+.lp-spot {
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(
+		20rem 20rem at var(--lp-px, 50%) var(--lp-py, 32%),
+		color-mix(in oklch, var(--lp-accent) 12%, transparent) 0%,
+		transparent 70%
+	);
+	opacity: 0;
+	transition: opacity 0.6s ease;
+}
+
+/* 静态颗粒：不加动画，抖动是「复古」的视觉信号，这里要去掉 */
+.lp-grain {
+	position: absolute;
+	inset: 0;
+	background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='140' height='140'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.82' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+	opacity: var(--lp-grain-opacity);
+	mix-blend-mode: overlay;
+}
+
+.lp-vignette {
+	position: absolute;
+	inset: 0;
+	background: var(--lp-vignette);
+}
+
+/* =============================================================================
+ * 布局基元
+ * ============================================================================= */
+
+/* 纵向主轴：Hero 按内容占高，概览区吃掉剩余，页脚定高。
+   min-height:0 是关键 —— flex 子项默认 min-height:auto，
+   不写的话概览区会被内容顶开，把 100svh 撑破。 */
+.lp-main {
+	position: relative;
+	z-index: 1;
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+}
+
+.lp-shell {
+	width: 100%;
+	max-width: 76rem;
+	margin-inline: auto;
+	padding-inline: 1.25rem;
+}
+
+/* 中间那块：吃掉 Hero 与页脚之间的全部高度 */
+.lp-overview {
+	position: relative;
+	flex: 1 1 auto;
+	min-height: 0;
+	padding: clamp(0.45rem, 1.3vh, 1rem) 0 clamp(0.6rem, 1.6vh, 1.1rem);
+}
+
+@keyframes lp-fade-up {
+	from { opacity: 0; transform: translateY(18px); }
+	to { opacity: 1; transform: none; }
+}
+
+/* =============================================================================
+ * Hero
+ * ============================================================================= */
+
+.lp-hero {
+	position: relative;
+	flex: 0 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	justify-content: center;
+	text-align: center;
+	/* 竖向留白走 vh：窗口矮的时候自己收，不把概览区挤没 */
+	padding: clamp(1.1rem, 3.4vh, 2.8rem) 1.25rem clamp(0.4rem, 1.3vh, 1.1rem);
+}
+
+.lp-hero-inner {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	width: 100%;
+	max-width: 60rem;
+}
+
+/* 公告条 */
+.lp-notice {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.6rem;
+	max-width: min(100%, 34rem);
+	padding: 0.34rem 0.9rem 0.34rem 0.45rem;
+	margin-bottom: clamp(0.45rem, 1.4vh, 1.1rem);
+	border: 1px solid var(--lp-line);
+	border-radius: 999px;
+	background: var(--lp-surface);
+	backdrop-filter: blur(12px);
+	-webkit-backdrop-filter: blur(12px);
+	box-shadow: var(--lp-shadow);
+	font-size: 0.8rem;
+	color: var(--lp-ink-dim);
+	text-decoration: none;
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0s) var(--lp-ease) both;
+}
+
+.lp-notice-tag {
+	flex: none;
+	padding: 0.16rem 0.6rem;
+	border-radius: 999px;
+	background: color-mix(in oklch, var(--lp-accent) 16%, transparent);
+	color: var(--lp-accent);
+	font-family: var(--lp-font-mono);
+	font-size: 0.62rem;
+	font-weight: 600;
+	letter-spacing: 0.16em;
+	text-transform: uppercase;
+}
+
+.lp-notice-text {
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+}
+
+.lp-avatar-wrap {
+	position: relative;
+	/* min(宽度驱动, 高度驱动)：窄屏按 vw 缩，矮屏按 vh 缩，两头都不撑破 */
+	width: clamp(3rem, min(9vw, 7.2vh), 4.9rem);
+	aspect-ratio: 1;
+	margin-bottom: clamp(0.55rem, 1.6vh, 1.35rem);
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.1s) var(--lp-ease) both;
+}
+
+.lp-avatar-ring {
+	position: absolute;
+	inset: -3px;
+	border-radius: 50%;
+	background: conic-gradient(
+		from 0deg,
+		var(--lp-accent),
+		var(--lp-accent-2),
+		var(--lp-accent-3),
+		var(--lp-accent)
+	);
+	animation: lp-spin 14s linear infinite;
+}
+
+.lp-avatar-glow {
+	position: absolute;
+	inset: -16px;
+	border-radius: 50%;
+	background: radial-gradient(circle, color-mix(in oklch, var(--lp-accent) 55%, transparent) 0%, transparent 68%);
+	filter: blur(18px);
+	opacity: 0.5;
+}
+
+.lp-avatar {
+	position: absolute;
+	inset: 3px;
+	border-radius: 50%;
+	overflow: hidden;
+	background: var(--lp-surface-2);
+	box-shadow: 0 0 0 3px var(--lp-bg);
+}
+
+/* Image 原子组件渲染出的是 <div><img></div>，两层都要撑满 */
+.lp-avatar-img,
+.lp-avatar-img img {
+	width: 100%;
+	height: 100%;
+	display: block;
+	object-fit: cover;
+}
+
+@keyframes lp-spin {
+	to { transform: rotate(360deg); }
+}
+
+.lp-eyebrow {
+	font-family: var(--lp-font-mono);
+	font-size: clamp(0.58rem, min(1.4vw, 1.6vh), 0.7rem);
+	letter-spacing: 0.4em;
+	text-transform: uppercase;
+	color: var(--lp-ink-faint);
+	margin-bottom: clamp(0.28rem, 0.9vh, 0.65rem);
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.18s) var(--lp-ease) both;
+}
+
+.lp-title {
+	position: relative;
+	margin: 0;
+	font-size: clamp(1.5rem, min(7.6vw, 5.6vh), 3.9rem);
+	font-weight: 900;
+	line-height: 1.04;
+	letter-spacing: -0.01em;
+	background-image: linear-gradient(
+		120deg,
+		var(--lp-ink) 0%,
+		var(--lp-ink) 34%,
+		var(--lp-accent) 58%,
+		var(--lp-accent-3) 78%,
+		var(--lp-ink) 100%
+	);
+	background-size: 220% 100%;
+	-webkit-background-clip: text;
+	background-clip: text;
+	color: transparent;
+	-webkit-text-fill-color: transparent;
+	animation:
+		lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.24s) var(--lp-ease) both,
+		lp-sheen 11s ease-in-out calc(var(--lp-intro-delay) + 1.5s) infinite alternate;
+	word-break: break-word;
+}
+
+@keyframes lp-sheen {
+	from { background-position: 0% 50%; }
+	to { background-position: 100% 50%; }
+}
+
+.lp-sub {
+	margin: clamp(0.4rem, 1.25vh, 0.9rem) 0 0;
+	min-height: 1.8em;
+	font-size: clamp(0.78rem, min(1.7vw, 2vh), 1rem);
+	color: var(--lp-ink-dim);
+	letter-spacing: 0.03em;
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.3s) var(--lp-ease) both;
+}
+
+.lp-caret {
+	display: inline-block;
+	width: 2px;
+	height: 1.05em;
+	margin-left: 0.16em;
+	vertical-align: -0.16em;
+	background: var(--lp-accent);
+	animation: lp-caret 1.05s steps(1) infinite;
+}
+
+@keyframes lp-caret {
+	0%, 49% { opacity: 1; }
+	50%, 100% { opacity: 0; }
+}
+
+/* ---------- 进入按钮：菱形磨砂玻璃 ----------
+ *
+ * 三层，每层只管一件事：
+ *
+ *   .lp-enter        布局盒子（宽 D、高 0.86D）。**不旋转** —— 这是关键：
+ *                    旋转 45° 的方形在布局上仍然占 D×D 的外接正方形，
+ *                    直接把按钮转过去会让 Hero 凭空多出 0.41D 的高度，
+ *                    在 1280×720 这种一屏刚好塞满的档位会把 Bento 顶爆。
+ *   .lp-enter-glass  里面的正方玻璃片，边长 D/√2，rotate(45deg) 之后
+ *                    视觉上正好是对角线 D 的菱形。overflow:hidden 在这里，
+ *                    水波纹被裁成菱形。
+ *   .lp-enter-label  不旋转的标签，压在玻璃之上，永远不会被裁。
+ *
+ * 为什么玻璃必须独立一层（这是一个真修过的 bug）：
+ *   原先水波纹直接 append 到按钮上，而按钮是 overflow:visible，
+ *   于是点一下会在页面正中炸开一个 max(宽,高)×2.1 ≈ 447px 的白色圆盘。
+ *   但如果反过来直接给按钮加 overflow:hidden，标签又会被菱形的内接区域
+ *   裁掉（内接正方形只有边长的 0.707 倍）。拆成两层，两边各拿各的，
+ *   冲突就没了。
+ *
+ * 菱形上下两个尖角会溢出布局盒子 0.07D，落进 Hero 的留白里 —— 那是个点，
+ * 不会和上下的文字打架（.lp-cta 的 margin-top 与 .lp-hint 的 margin-top
+ * 都大于这个值）。这样视觉上有 D 大，布局上只占 0.86D。
+ *
+ * 刻意不要的东西：
+ *   ✗ 强调色渐变填充 + 白字 —— 深色下白字压 oklch(0.74) 只有约 2:1，对比度不达标
+ *   ✗ 动画 shimmer —— 玻璃上只有一道静止的高光（光源固定），扫来扫去就俗了
+ *   ✗ filter: blur 光晕 —— 逐帧重绘
+ *   ✗ conic-gradient 旋转描边 —— 需要全局 @property，且是全组唯一真·逐帧重绘
+ */
+
+.lp-cta {
+	/* 菱形的对角线长度。0.86 是布局盒子的高宽比（见上），
+	   所以布局高度 = 0.86 × 这个值 —— 1280×720 下约 84px，
+	   正好卡在 Bento 开始被顶爆（约 95px）之前。 */
+	--lp-d: clamp(4.6rem, min(13vw, 13.6vh), 11.5rem);
+
+	position: relative;
+	/* 原 2.5vh，收一点给变高的按钮腾地方（见文件末尾的高度回收块） */
+	margin-top: clamp(0.7rem, 2.1vh, 1.65rem);
+	display: inline-grid;
+	place-items: center;
+	/* 入场动画走 transform，磁吸位移走 translate 属性，两者互不干扰 */
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.36s) var(--lp-ease) both;
+}
+
+.lp-cta-inner {
+	position: relative;
+	display: inline-grid;
+	place-items: center;
+	will-change: translate;
+	/* 磁吸回位要有惯性。原先只写了 will-change，JS 一移开指针 translate 是「瞬移」回中的 */
+	transition: translate 0.5s var(--lp-ease);
+}
+
+/* 光晕：不再用 filter: blur，改成只呼吸 opacity/scale，纯合成层。
+   做成正圆（正方形 + border-radius:50%）而不是 follow 按钮的盒子 ——
+   盒子是扁的，closest-side 的径向渐变会跟着变成椭圆，菱形配椭圆很难看。 */
+.lp-cta-halo {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: calc(var(--lp-d) * 1.95);
+	aspect-ratio: 1;
+	translate: -50% -50%;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		color-mix(in oklch, var(--lp-accent) 46%, transparent),
+		transparent 74%
+	);
+	opacity: 0.42;
+	pointer-events: none;
+	animation: lp-breathe 5.2s ease-in-out infinite;
+}
+
+:root.dark .lp-cta-halo {
+	opacity: 0.38;
+}
+
+@keyframes lp-breathe {
+	0%, 100% { opacity: 0.4; transform: scale(1); }
+	50% { opacity: 0.78; transform: scale(1.07); }
+}
+
+.lp-enter {
+	/* 布局盒子：宽 = 对角线 D，高 = 0.86D。不旋转，见上面的说明。 */
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: var(--lp-d);
+	height: calc(var(--lp-d) * 0.86);
+	border: 0;
+	background: none;
+	text-decoration: none;
+	cursor: pointer;
+	-webkit-tap-highlight-color: transparent;
+}
+
+/* 玻璃片本体。边长取 D/√2，转 45° 后外接正方形正好是 D×D。 */
+.lp-enter-glass {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: calc(var(--lp-d) * 0.7071);
+	height: calc(var(--lp-d) * 0.7071);
+	translate: -50% -50%;
+	rotate: 45deg;
+	scale: 1;
+	border-radius: 16%;
+	/* 水波纹就裁在这里 —— 这是「点击后按钮炸成巨大圆盘」那个 bug 的正解 */
+	overflow: hidden;
+	background: linear-gradient(145deg, var(--lp-glass-hi), var(--lp-glass-lo));
+	border: 1px solid var(--lp-glass-edge);
+	backdrop-filter: blur(18px) saturate(170%);
+	-webkit-backdrop-filter: blur(18px) saturate(170%);
+	box-shadow:
+		/* 内高光落在上缘、内暗边落在下缘 = 玻璃片的厚度 */
+		inset 0 1px 1px rgba(255, 255, 255, 0.55),
+		inset 0 -1px 1px rgba(255, 255, 255, 0.1),
+		0 18px 46px -18px color-mix(in oklch, var(--lp-accent) 62%, transparent);
+	transition:
+		scale 0.5s var(--lp-ease),
+		box-shadow 0.5s ease,
+		border-color 0.4s ease;
+}
+
+/* 静止的镜面高光。光源方向固定（左上），所以玻璃转 45° 之后
+   渐变角也要跟着转，不然高光会跑到右下角去 —— 100deg + 45deg ≈ 145deg。 */
+.lp-enter-glass::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	border-radius: inherit;
+	background: linear-gradient(
+		100deg,
+		rgba(255, 255, 255, 0.5) 0%,
+		rgba(255, 255, 255, 0.14) 24%,
+		rgba(255, 255, 255, 0) 46%,
+		rgba(255, 255, 255, 0.16) 100%
+	);
+	pointer-events: none;
+}
+
+/* 不支持 backdrop-filter 时退成一块不透明底色。少了这层，
+   老浏览器上玻璃是「半透明纯色」，背景会直接透出来，字就糊了。 */
+@supports not ((backdrop-filter: blur(2px)) or (-webkit-backdrop-filter: blur(2px))) {
+	.lp-enter-glass {
+		background: color-mix(in oklch, var(--lp-bg) 88%, var(--lp-ink) 12%);
+	}
+}
+
+.lp-enter-label {
+	position: relative;
+	z-index: 1;
+	display: inline-flex;
+	align-items: center;
+	gap: clamp(0.4rem, 1.1vh, 0.68rem);
+	white-space: nowrap;
+	font-size: clamp(0.88rem, min(1.9vw, 2.4vh), 1.32rem);
+	font-weight: 800;
+	color: var(--lp-glass-ink);
+	pointer-events: none;
+}
+
+/* 字距挪到这一层：写在 flex 容器上时 text-indent 对 flex 子项无效，
+   末尾会多留一个空档，视觉上不居中 */
+.lp-enter-text {
+	letter-spacing: 0.16em;
+	text-indent: 0.16em;
+}
+
+.lp-enter-arrow {
+	width: clamp(0.98rem, 2.2vh, 1.32rem);
+	height: auto;
+	flex: none;
+	transition: transform 0.45s var(--lp-ease);
+}
+
+/* 点击水波纹。颜色取字色：浅色主题是亮玻璃上的墨色涟漪，
+   深色主题是暗玻璃上的亮色涟漪，两个主题都看得见。
+   挂在玻璃片内部，被它的 overflow:hidden 裁成菱形。 */
+.lp-ripple {
+	position: absolute;
+	border-radius: 50%;
+	background: color-mix(in oklch, var(--lp-glass-ink) 30%, transparent);
+	transform: translate(-50%, -50%) scale(0);
+	pointer-events: none;
+	animation: lp-ripple 0.68s ease-out forwards;
+}
+
+@keyframes lp-ripple {
+	to { transform: translate(-50%, -50%) scale(1); opacity: 0; }
+}
+
+/* hover 只动 scale / 阴影 / 描边 —— 不动字距也不动宽度，否则整块会横向抽动 */
+@media (hover: hover) {
+	.lp-cta:hover .lp-enter-glass {
+		scale: 1.045;
+		border-color: var(--lp-glass-edge-hi);
+		box-shadow:
+			inset 0 1px 1px rgba(255, 255, 255, 0.72),
+			inset 0 -1px 1px rgba(255, 255, 255, 0.14),
+			0 28px 64px -18px color-mix(in oklch, var(--lp-accent) 88%, transparent);
+	}
+
+	.lp-cta:hover .lp-enter-arrow {
+		transform: translateX(0.32rem);
+	}
+}
+
+.lp-enter:active .lp-enter-glass {
+	scale: 0.965;
+	transition-duration: 0.12s;
+	box-shadow:
+		inset 0 1px 1px rgba(255, 255, 255, 0.4),
+		inset 0 -1px 1px rgba(255, 255, 255, 0.12),
+		0 8px 22px -16px color-mix(in oklch, var(--lp-accent) 72%, transparent);
+}
+
+/* 焦点环画在玻璃片上 —— 跟着 rotate 一起转，于是得到一个菱形描边。
+   描边不受 overflow:hidden 影响，不会被裁。 */
+.lp-enter:focus-visible {
+	outline: none;
+}
+
+.lp-enter:focus-visible .lp-enter-glass {
+	outline: 2px solid var(--lp-accent);
+	outline-offset: 8px;
+}
+
+.lp-hint {
+	/* 下限抬到 0.6rem：菱形朝下的那个尖角会溢出布局盒子 0.07D（约 9px），
+	   要留出比它大的间距，否则尖角会戳进这行字里 */
+	margin-top: clamp(0.6rem, 1.6vh, 1.15rem);
+	font-family: var(--lp-font-mono);
+	font-size: 0.7rem;
+	letter-spacing: 0.14em;
+	color: var(--lp-ink-faint);
+	animation: lp-fade-up 0.8s calc(var(--lp-intro-delay) + 0.5s) var(--lp-ease) both;
+}
+
+.lp-hint kbd {
+	padding: 0.1rem 0.4rem;
+	border: 1px solid var(--lp-line);
+	border-radius: 0.32rem;
+	background: var(--lp-surface-2);
+	color: var(--lp-ink-dim);
+	font-family: inherit;
+	font-size: 0.9em;
+}
+
+/* =============================================================================
+ * 卡片（Bento 及其它区块共用）
+ * ============================================================================= */
+
+/* 两行等高、撑满概览区：行高 1fr + minmax(0,…) 让卡片能缩到比内容还矮
+   （否则 min-content 会把行顶开，页面重新出现滚动条），
+   溢出的部分由 .lp-card 的 overflow:hidden 裁掉。 */
+.lp-bento {
+	display: grid;
+	height: 100%;
+	grid-template-columns: repeat(12, minmax(0, 1fr));
+	grid-template-rows: repeat(2, minmax(0, 1fr));
+	gap: clamp(0.5rem, 1.1vh, 0.85rem);
+}
+
+.lp-card {
+	position: relative;
+	grid-column: span 12;
+	display: flex;
+	flex-direction: column;
+	min-height: 0;
+	padding: clamp(0.68rem, 1.5vh, 1.05rem) clamp(0.8rem, 1.7vh, 1.15rem);
+	border: 1px solid var(--lp-line);
+	border-radius: var(--lp-radius);
+	background: var(--lp-surface);
+	backdrop-filter: blur(16px) saturate(1.1);
+	-webkit-backdrop-filter: blur(16px) saturate(1.1);
+	box-shadow: var(--lp-shadow);
+	overflow: hidden;
+	/* 入场用 animation 而不是 transition：
+	   transition-delay 会作用于元素上「所有」过渡，拿它排错落节奏的话，
+	   排在后面的卡片连 hover 抬升都要等 0.3s 才响应。
+	   animation 的 delay 只管这一条动画，且 transform 与 hover 的 translate
+	   是两个独立属性，互不覆盖。 */
+	animation: lp-fade-up 0.7s var(--lp-ease) both;
+	transition: translate 0.45s var(--lp-ease), border-color 0.45s ease, box-shadow 0.45s ease;
+}
+
+/* 跟随鼠标的柔光 */
+.lp-card::before {
+	content: "";
+	position: absolute;
+	inset: 0;
+	background: radial-gradient(
+		20rem 20rem at var(--mx, 50%) var(--my, 50%),
+		color-mix(in oklch, var(--lp-accent) 14%, transparent),
+		transparent 64%
+	);
+	opacity: 0;
+	transition: opacity 0.45s ease;
+	pointer-events: none;
+}
+
+.lp-card:hover {
+	translate: 0 -4px;
+	border-color: var(--lp-line-strong);
+	box-shadow: var(--lp-shadow-lift);
+}
+
+.lp-card:hover::before {
+	opacity: 1;
+}
+
+.lp-card > * {
+	position: relative;
+	z-index: 1;
+}
+
+/* 跨度修饰符必须排在 .lp-card 之后：两者都是单类选择器（0,1,0），
+   靠源码顺序决胜，写前面会被 .lp-card 的 span 12 盖掉。 */
+.lp-card--half {
+	grid-column: span 6;
+}
+
+.lp-card--quarter {
+	grid-column: span 3;
+}
+
+/* 七张卡全在首屏，入场是一次性的，错落节奏按 DOM 顺序排（先第一行后第二行）。
+   手机端隐藏了 5~7 号卡，延迟不会因此断档 —— 它们只是不显示。 */
+.lp-bento .lp-card:nth-child(1) { animation-delay: calc(var(--lp-intro-delay) + 0.04s); }
+.lp-bento .lp-card:nth-child(2) { animation-delay: calc(var(--lp-intro-delay) + 0.1s); }
+.lp-bento .lp-card:nth-child(3) { animation-delay: calc(var(--lp-intro-delay) + 0.16s); }
+.lp-bento .lp-card:nth-child(4) { animation-delay: calc(var(--lp-intro-delay) + 0.22s); }
+.lp-bento .lp-card:nth-child(5) { animation-delay: calc(var(--lp-intro-delay) + 0.28s); }
+.lp-bento .lp-card:nth-child(6) { animation-delay: calc(var(--lp-intro-delay) + 0.34s); }
+.lp-bento .lp-card:nth-child(7) { animation-delay: calc(var(--lp-intro-delay) + 0.4s); }
+
+.lp-card-head {
+	flex: none;
+	display: flex;
+	align-items: center;
+	gap: 0.6rem;
+	margin-bottom: clamp(0.35rem, 0.9vh, 0.7rem);
+}
+
+.lp-card-title {
+	font-family: var(--lp-font-mono);
+	font-size: 0.68rem;
+	font-weight: 600;
+	letter-spacing: 0.22em;
+	text-transform: uppercase;
+	color: var(--lp-ink-dim);
+}
+
+.lp-card-icon {
+	display: grid;
+	place-items: center;
+	width: 1.4rem;
+	height: 1.4rem;
+	border-radius: 0.45rem;
+	background: color-mix(in oklch, var(--lp-accent) 14%, transparent);
+	color: var(--lp-accent);
+	font-size: 0.8rem;
+}
+
+.lp-card-sub {
+	margin-left: auto;
+	font-family: var(--lp-font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.1em;
+	color: var(--lp-ink-faint);
+}
+
+.lp-empty {
+	font-size: 0.82rem;
+	color: var(--lp-ink-faint);
+}
+
+/* 最新文章 */
+.lp-posts {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	gap: 0.1rem;
+	overflow: hidden;
+}
+
+.lp-post {
+	display: flex;
+	align-items: baseline;
+	gap: 0.7rem;
+	padding: clamp(0.2rem, 0.6vh, 0.42rem) 0.5rem clamp(0.2rem, 0.6vh, 0.42rem) 0.1rem;
+	border-radius: 0.55rem;
+	text-decoration: none;
+	color: inherit;
+	transition: background 0.3s ease, padding-left 0.3s ease;
+}
+
+.lp-post:hover {
+	background: var(--lp-hover);
+	padding-left: 0.5rem;
+}
+
+.lp-post-dot {
+	flex: none;
+	width: 0.3rem;
+	height: 0.3rem;
+	border-radius: 50%;
+	background: var(--lp-accent);
+	transform: translateY(-0.15rem);
+}
+
+.lp-post-name {
+	flex: 1;
+	min-width: 0;
+	font-size: clamp(0.76rem, min(1.1vw, 1.75vh), 0.88rem);
+	overflow: hidden;
+	text-overflow: ellipsis;
+	white-space: nowrap;
+	color: var(--lp-ink);
+	transition: color 0.3s ease;
+}
+
+.lp-post:hover .lp-post-name {
+	color: var(--lp-accent);
+}
+
+.lp-post-date {
+	flex: none;
+	font-family: var(--lp-font-mono);
+	font-size: 0.66rem;
+	color: var(--lp-ink-faint);
+}
+
+/* 统计数字 */
+.lp-stats {
+	display: grid;
+	grid-template-columns: repeat(3, minmax(0, 1fr));
+	gap: 0.6rem;
+}
+
+.lp-stats {
+	/* 卡片是 flex 纵向容器，让统计块把多余高度吃掉，数字垂直居中 */
+	flex: 1 1 auto;
+	min-height: 0;
+	align-content: center;
+}
+
+.lp-stat-value {
+	display: block;
+	font-size: clamp(1.05rem, min(2.6vw, 3.2vh), 1.65rem);
+	font-weight: 800;
+	line-height: 1.1;
+	font-variant-numeric: tabular-nums;
+	color: var(--lp-ink);
+}
+
+.lp-stat-label {
+	display: block;
+	margin-top: 0.2rem;
+	font-family: var(--lp-font-mono);
+	font-size: 0.6rem;
+	letter-spacing: 0.14em;
+	color: var(--lp-ink-faint);
+}
+
+/* 时钟 */
+.lp-clock {
+	font-family: var(--lp-font-mono);
+	font-size: clamp(1.15rem, min(3.4vw, 4vh), 1.85rem);
+	font-weight: 700;
+	letter-spacing: 0.05em;
+	color: var(--lp-ink);
+	font-variant-numeric: tabular-nums;
+}
+
+.lp-clock-meta {
+	margin-top: 0.4rem;
+	font-family: var(--lp-font-mono);
+	font-size: 0.66rem;
+	letter-spacing: 0.12em;
+	color: var(--lp-ink-faint);
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.3rem 0.9rem;
+}
+
+.lp-greet {
+	margin-top: clamp(0.3rem, 0.9vh, 0.7rem);
+	font-size: clamp(0.72rem, 1.6vh, 0.82rem);
+	color: var(--lp-ink-dim);
+}
+
+/* 关于 */
+.lp-about {
+	display: flex;
+	align-items: center;
+	gap: 0.95rem;
+}
+
+.lp-about-text {
+	min-width: 0;
+}
+
+.lp-about-avatar {
+	flex: none;
+	width: clamp(2.1rem, 5vh, 2.9rem);
+	height: clamp(2.1rem, 5vh, 2.9rem);
+	border-radius: 50%;
+	overflow: hidden;
+	box-shadow: 0 0 0 1px var(--lp-line-strong);
+}
+
+.lp-about-avatar-img,
+.lp-about-avatar-img img {
+	width: 100%;
+	height: 100%;
+	display: block;
+	object-fit: cover;
+}
+
+.lp-about-name {
+	font-size: 1rem;
+	font-weight: 700;
+	color: var(--lp-ink);
+}
+
+.lp-about-bio {
+	margin-top: 0.22rem;
+	font-size: 0.81rem;
+	color: var(--lp-ink-dim);
+}
+
+/* 快捷入口 */
+.lp-quick {
+	flex: 1 1 auto;
+	min-height: 0;
+	align-content: center;
+	display: grid;
+	/* 窄卡里 3 列刚好排两行；minmax 从 5.2rem 压到 4rem 是为了凑够 3 列 */
+	grid-template-columns: repeat(auto-fit, minmax(4rem, 1fr));
+	gap: clamp(0.28rem, 0.75vh, 0.45rem);
+}
+
+.lp-quick-item {
+	display: flex;
+	flex-direction: column;
+	align-items: center;
+	gap: clamp(0.15rem, 0.5vh, 0.32rem);
+	padding: clamp(0.34rem, 0.95vh, 0.6rem) 0.28rem;
+	border: 1px solid var(--lp-line);
+	border-radius: var(--lp-radius-sm);
+	background: var(--lp-surface-2);
+	color: var(--lp-ink-dim);
+	text-decoration: none;
+	font-size: clamp(0.66rem, 1.45vh, 0.75rem);
+	transition: transform 0.35s var(--lp-ease), color 0.35s ease, border-color 0.35s ease, background 0.35s ease;
+}
+
+.lp-quick-item:hover {
+	transform: translateY(-3px);
+	color: var(--lp-ink);
+	border-color: var(--lp-line-strong);
+	background: var(--lp-hover);
+}
+
+.lp-quick-glyph {
+	font-size: clamp(0.88rem, 2vh, 1.05rem);
+	line-height: 1;
+}
+
+/* 分类 · 标签合卡：窄卡里两条纸片行比两列纵排更省高度。
+   分类和标签都渲染成 .lp-tag，靠一行小字标签区分。 */
+.lp-tax {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	gap: clamp(0.16rem, 0.5vh, 0.34rem);
+	overflow: hidden;
+}
+
+.lp-tax-label {
+	font-family: var(--lp-font-mono);
+	font-size: clamp(0.54rem, 1.25vh, 0.6rem);
+	font-weight: 600;
+	letter-spacing: 0.2em;
+	text-transform: uppercase;
+	color: var(--lp-ink-faint);
+}
+
+.lp-tax-label--sep {
+	margin-top: clamp(0.18rem, 0.55vh, 0.4rem);
+	padding-top: clamp(0.18rem, 0.6vh, 0.42rem);
+	border-top: 1px dashed var(--lp-line);
+}
+
+/* 碎碎念 */
+.lp-note {
+	flex: 1 1 auto;
+	min-height: 0;
+	display: flex;
+	flex-direction: column;
+	justify-content: center;
+	overflow: hidden;
+	font-size: clamp(0.72rem, 1.55vh, 0.85rem);
+	line-height: 1.6;
+	color: var(--lp-ink-dim);
+}
+
+.lp-note-quote {
+	margin: 0;
+	padding-left: 0.7rem;
+	border-left: 2px solid color-mix(in oklch, var(--lp-accent) 45%, transparent);
+	/* 窄卡 + 定高，长日记最多显示 3 行，多出来的裁掉 */
+	display: -webkit-box;
+	-webkit-line-clamp: 3;
+	-webkit-box-orient: vertical;
+	overflow: hidden;
+}
+
+.lp-note-meta {
+	margin-top: clamp(0.3rem, 0.9vh, 0.6rem);
+	font-family: var(--lp-font-mono);
+	font-size: clamp(0.56rem, 1.3vh, 0.64rem);
+	letter-spacing: 0.12em;
+	color: var(--lp-ink-faint);
+	display: flex;
+	gap: 0.8rem;
+}
+
+/* 标签云 */
+.lp-tags {
+	display: flex;
+	flex-wrap: wrap;
+	gap: 0.4rem;
+}
+
+.lp-tag {
+	padding: clamp(0.12rem, 0.42vh, 0.22rem) clamp(0.4rem, 1vh, 0.58rem);
+	border: 1px solid var(--lp-line);
+	border-radius: 999px;
+	background: var(--lp-surface-2);
+	color: var(--lp-ink-dim);
+	font-size: clamp(0.62rem, 1.4vh, 0.7rem);
+	text-decoration: none;
+	transition: color 0.3s ease, border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
+}
+
+/* 分类用强调色描边，跟标签拉开层次 */
+.lp-tag--cat {
+	border-color: color-mix(in oklch, var(--lp-accent) 32%, transparent);
+	background: color-mix(in oklch, var(--lp-accent) 9%, transparent);
+	color: var(--lp-ink);
+}
+
+.lp-tag:hover {
+	color: var(--lp-ink);
+	border-color: color-mix(in oklch, var(--lp-accent) 45%, transparent);
+	background: color-mix(in oklch, var(--lp-accent) 10%, transparent);
+	transform: translateY(-2px);
+}
+
+.lp-tag-count {
+	margin-left: 0.3rem;
+	font-family: var(--lp-font-mono);
+	font-size: 0.64rem;
+	color: var(--lp-ink-faint);
+}
+
+/* =============================================================================
+ * 页脚
+ * ============================================================================= */
+
+/* 单行页脚。原来的四列（品牌 / 浏览 / 更多 / 关注）纵向就要 ~200px，
+   在一屏约束下只能砍掉，站内导航交给 Bento 的「快捷入口」卡。 */
+.lp-foot {
+	position: relative;
+	/* 页脚是 .lp-main 的兄弟节点，要显式抬到场景层之上 */
+	z-index: 1;
+	flex: none;
+	border-top: 1px solid var(--lp-line);
+	background: var(--lp-surface-2);
+	backdrop-filter: blur(16px);
+	-webkit-backdrop-filter: blur(16px);
+}
+
+.lp-foot-inner {
+	width: 100%;
+	max-width: 76rem;
+	margin-inline: auto;
+	padding: 0 1.25rem;
+	min-height: clamp(2.6rem, 5.4vh, 3.4rem);
+	display: flex;
+	align-items: center;
+	justify-content: space-between;
+	flex-wrap: wrap;
+	gap: 0.4rem 1.2rem;
+}
+
+.lp-foot-copy {
+	font-family: var(--lp-font-mono);
+	font-size: clamp(0.58rem, 1.3vh, 0.66rem);
+	letter-spacing: 0.08em;
+	color: var(--lp-ink-faint);
+	white-space: nowrap;
+}
+
+.lp-foot-copy--dim {
+	/* 署名永远靠右，导航栏中间那段的伸缩不会把它推走 */
+	margin-left: auto;
+	text-align: right;
+}
+
+.lp-foot-copy a {
+	color: var(--lp-ink-dim);
+	text-decoration: none;
+	transition: color 0.3s ease;
+}
+
+.lp-foot-copy a:hover {
+	color: var(--lp-accent);
+}
+
+.lp-foot-social {
+	display: flex;
+	align-items: center;
+	gap: 1rem;
+}
+
+.lp-foot-link {
+	display: inline-flex;
+	align-items: center;
+	gap: 0.35rem;
+	font-family: var(--lp-font-mono);
+	font-size: clamp(0.58rem, 1.3vh, 0.66rem);
+	letter-spacing: 0.08em;
+	color: var(--lp-ink-dim);
+	text-decoration: none;
+	transition: color 0.3s ease;
+}
+
+.lp-foot-link:hover {
+	color: var(--lp-accent);
+}
+
+/* =============================================================================
+ * 开屏动画 —— 「四色套印」
+ *
+ * 语义：三张色版先错位落下，再逐一对齐「套准」并锁定，最后两块印张上下分开，
+ * 露出已经就位的起始页。全长 5.00s，分四幕。
+ *
+ * 时间轴（总 5.00s）：
+ *   0.00         遮罩铺满（纸底）
+ *   0.10 —0.72   套准十字标 · 外圈描边自绘
+ *   0.24 —0.86   套准十字标 · 十字线描边自绘
+ *
+ *   —— 第一幕 制版 ——
+ *   0.50 —2.05   色版 1 错位落下并套准（1.55s）
+ *   0.66 —2.21   色版 2
+ *   0.82 —2.37   色版 3  ← 2.37 三版全部套准
+ *   0.95 —2.60   墨线进度条 scaleX 0→1
+ *   1.70 —2.25   报头第 1 行上推（mask reveal）
+ *   1.79 —2.34   报头第 2 行上推
+ *
+ *   —— 第二幕 锁定（2.30 起，正好压在 2.37 套准完成那一刻）——
+ *   2.30 —2.92   套准十字回弹（缩→弹过→归位）
+ *   2.32 —3.47   菱形冲击波：两圈旋转 45° 的方框向外扩散
+ *   2.32 —3.32   中心光晕炸开
+ *   2.32 —2.92   标签 SETUP · 套色套准  →  ALIGNED · 套准完成
+ *
+ *   —— 第三幕 印刷 ——
+ *   2.85 —3.75   套准框淡入（之后无限缓转）
+ *   2.95 —4.45   一道光泽横扫过整个舞台
+ *
+ *   —— 第四幕 出纸 ——
+ *   4.02 —4.40   舞美层淡出
+ *   4.40 —5.00   双印张上下分开
+ *   5.00         容器落到 visibility:hidden（终态）
+ *   4.32 起      页面自身的 lp-fade-up 已在帘下开跑
+ *
+ * 关键节奏：内容入场不晚于帘子开始拉开 —— 帘子掀开时内容已经浮起大半，
+ * 观感是「一揭开就好了」，而不是「先撤帘、再从头播一遍」。
+ * 所以 --lp-intro-delay(4.32s) 紧贴 --lp-exit(4.40s)。
+ *
+ * 第二幕刻意压在 2.37s —— 三版套准的那一帧。前面 2.4 秒是「机器在动」，
+ * 中间这 1 秒是「咔哒一声合上了」，后面 2 秒是「出片」。5 秒如果没有这个
+ * 转折点，就只是把 2.7 秒的动画放慢，会显得拖。
+ *
+ * 地基：遮罩默认 display:none，只有 html[data-lp-intro="on"] 才渲染。
+ * 退场靠 animation-fill-mode 落到 visibility:hidden，不靠 JS 删节点。
+ * ============================================================================= */
+
+.lp-splash {
+	display: none;
+}
+
+html[data-lp-intro="on"] .lp-splash {
+	display: block;
+}
+
+.lp-splash {
+	/* 跳过时这几个变量被改成 0 / 短时长，整条链就提前收场 */
+	--lp-exit: 4.4s;
+	--lp-exit-dur: 0.6s;
+	--lp-stage-out: 4.02s;
+	--lp-stage-out-dur: 0.38s;
+
+	position: absolute;
+	inset: 0;
+	z-index: 60; /* 高于 .lp-scene(0) / .lp-main(1) / .lp-foot(1) */
+
+	/* 开屏期间吃掉指针事件。
+	   以前这里是 none（「纯装饰，点任意处都能跳过」）—— 点击跳过一去掉，
+	   这个 none 就必须反过来，否则盲点一下会穿透到帘子底下那张早就渲染好的
+	   页面上：正好压在「进入」按钮或某张卡片上的话，当场跳走，
+	   动画照样被打断，而且毫无征兆。详见 index.ts 的 startIntroSkip 注释。 */
+	pointer-events: auto;
+
+	/* 两条 0.01s 的空动画，都不做视觉效果，只负责在时间轴的固定位置
+	   把两个开关拨过去：
+	     guard —— 片尾一开始（--lp-exit）就把指针交还。
+	              帘子正在拉开的那 0.6s 里内容已经露出来了，
+	              再挡着就成了「看得见却点不动」。
+	     hide  —— 片尾结束落到 visibility:hidden。
+	   fill-mode 一个 forwards 一个 both，都是为了把拨过去的状态留住。 */
+	animation:
+		lp-splash-guard 0.01s linear var(--lp-exit) forwards,
+		lp-splash-hide 0.01s linear calc(var(--lp-exit) + var(--lp-exit-dur)) both;
+}
+
+@keyframes lp-splash-guard {
+	to { pointer-events: none; }
+}
+
+@keyframes lp-splash-hide {
+	to { visibility: hidden; }
+}
+
+/* ---------- 双印张 ---------- */
+/* 51% + 51% 重叠 2%，接缝处不会露出 1px 的底 */
+.lp-splash__sheet {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	height: 51%;
+	background: var(--lp-bg);
+	z-index: 2;
+	will-change: transform;
+}
+
+.lp-splash__sheet--top {
+	top: 0;
+	animation: lp-curtain-top var(--lp-exit-dur) cubic-bezier(0.7, 0, 0.2, 1) var(--lp-exit) both;
+}
+
+.lp-splash__sheet--bot {
+	bottom: 0;
+	animation: lp-curtain-bot var(--lp-exit-dur) cubic-bezier(0.7, 0, 0.2, 1) var(--lp-exit) both;
+}
+
+/* 帘子边缘一道强调色发丝，掀开时才有「纸被切开」的实感 */
+.lp-splash__sheet--top .lp-splash__edge {
+	position: absolute;
+	left: 0;
+	right: 0;
+	bottom: 0;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		color-mix(in oklch, var(--lp-accent) 55%, transparent),
+		transparent
+	);
+}
+
+.lp-splash__sheet--bot .lp-splash__edge {
+	position: absolute;
+	left: 0;
+	right: 0;
+	top: 0;
+	height: 1px;
+	background: linear-gradient(
+		90deg,
+		transparent,
+		color-mix(in oklch, var(--lp-accent) 55%, transparent),
+		transparent
+	);
+}
+
+/* 101% 而不是 100%：亚像素舍入会在边缘留一条发丝缝 */
+@keyframes lp-curtain-top {
+	to { transform: translate3d(0, -101%, 0); }
+}
+
+@keyframes lp-curtain-bot {
+	to { transform: translate3d(0, 101%, 0); }
+}
+
+/* ---------- 舞美层 ---------- */
+.lp-splash__stage {
+	position: absolute;
+	inset: 0;
+	z-index: 3;
+	display: grid;
+	place-content: center;
+	justify-items: center;
+	gap: clamp(0.7rem, 2vh, 1.2rem);
+	animation: lp-stage-out var(--lp-stage-out-dur) ease-in var(--lp-stage-out) both;
+}
+
+@keyframes lp-stage-out {
+	to { opacity: 0; transform: translateY(-6px); }
+}
+
+/* 套准标记：色版 + 十字 + 冲击波 + 套准框的共用圆心，也是它们唯一的尺寸基准。
+   方块取 20vmin；上下限用 rem 兜住极端窗口。 */
+.lp-splash__mark {
+	position: relative;
+	display: grid;
+	place-items: center;
+	width: clamp(5.5rem, 20vmin, 10.5rem);
+	aspect-ratio: 1;
+}
+
+/* 套准十字标。pathLength="1" 把路径长度归一化，
+   所以 stroke-dasharray/offset 直接用 1，不需要 JS 去量长度。
+   绝对居中在套准标记上：十字是印在色版上的，不是另起一行。 */
+.lp-splash__reg {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	translate: -50% -50%;
+	width: 44%;
+	height: auto;
+	/* 十字是强调色，而它背后的三张色版也是强调色系 —— 同色系叠同色系，
+	   不管怎么调不透明度都是低对比。所以给描边加一圈**背景色**的光晕
+	   把两者隔开：浅色主题晕浅、深色主题晕深，一条规则两个主题都对。
+	   drop-shadow 只吃元素的 alpha，所以只有描边吃到光晕，透明区不受影响。 */
+	filter: drop-shadow(0 0 2px var(--lp-bg)) drop-shadow(0 0 5px var(--lp-bg));
+	/* 套准锁定的第二幕：回弹一下，像卡榫咬合 */
+	animation: lp-reg-lock 0.62s cubic-bezier(0.34, 1.56, 0.64, 1) 2.3s both;
+}
+
+@keyframes lp-reg-lock {
+	0% { scale: 1; }
+	32% { scale: 0.82; }
+	62% { scale: 1.06; }
+	100% { scale: 1; }
+}
+
+.lp-splash__reg circle,
+.lp-splash__reg path {
+	fill: none;
+	stroke: var(--lp-accent);
+	stroke-width: 1.4;
+	stroke-dasharray: 1;
+	stroke-dashoffset: 1;
+	/* to 就是完整态 —— reduced-motion 把 duration 压到 0.001ms 时，
+	   落到的是「已经画好的十字」，而不是半截 */
+	animation: lp-draw 0.62s cubic-bezier(0.6, 0, 0.2, 1) both;
+}
+
+.lp-splash__reg circle { animation-delay: 0.1s; }
+.lp-splash__reg path { animation-delay: 0.24s; }
+
+@keyframes lp-draw {
+	to { stroke-dashoffset: 0; }
+}
+
+/* 三张色版：先错位落下并停住（= 未套准），再对齐。
+   尺寸填满套准标记 —— 色版就是那张纸，标记多大它就多大。 */
+.lp-splash__plates {
+	position: absolute;
+	inset: 0;
+	display: grid;
+	/* 必须显式写成 1fr/1fr：三张版叠在同一格里，靠 stretch 撑满。
+	   换成 auto 行的话，版上写 height:100% 会解析成 auto（行高本身要由
+	   内容决定，百分比就没有参照），三张版当场塌成 0 高 —— 屏幕上什么都不剩。 */
+	grid-template: 1fr / 1fr;
+	pointer-events: none;
+}
+
+.lp-plate {
+	/* 错位量用百分比：色版是 5.5rem–10.5rem 之间浮动的，
+	   写死 px 的话小窗口上错位会大到把三张版甩出标记外 */
+	--dx: 0%;
+	--dy: 0%;
+	/* 套准完成后停在什么不透明度。两个主题都要压得很低，但理由相反，
+	   所以必须分开调（这就是它得做成变量的原因）：
+	     深色 —— screen 是「加法」，三版对齐 = 三份亮色相加。
+	             0.56 会叠出一块接近纯白的纸，套准十字（同为强调色系）压上去等于消失。
+	     浅色 —— multiply 是「乘法」，三版对齐 = 三份暗色相乘。
+	             0.56 会叠成一块深灰褐的泥板，压得比深色主题还重。
+	   所以浅色 0.30（淡油墨）、深色 0.34（中调油墨），两边都落在「有颜色但不糊」的区间。 */
+	--lp-plate-peak: 0.3;
+
+	grid-area: 1 / 1;
+	border-radius: 12%;
+	/* 浅色下像油墨叠印；深色下必须换 screen，否则三层相乘会糊成一团黑 */
+	mix-blend-mode: multiply;
+	opacity: 0;
+	animation: lp-plate-reg 1.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+	animation-delay: calc(0.5s + var(--p, 0) * 0.16s);
+}
+
+.lp-plate:nth-child(1) { --p: 0; --dx: -7%; --dy: -5%; background: var(--lp-accent); }
+.lp-plate:nth-child(2) { --p: 1; --dx: 5.5%; --dy: 4%; background: var(--lp-accent-2); }
+.lp-plate:nth-child(3) { --p: 2; --dx: 0%; --dy: -7.5%; background: var(--lp-accent-3); }
+
+:root.dark .lp-plate {
+	--lp-plate-peak: 0.34;
+	mix-blend-mode: screen;
+}
+
+@keyframes lp-plate-reg {
+	0% { opacity: 0; scale: 0.82; translate: calc(var(--dx) * 2.6) calc(var(--dy) * 2.6); }
+	45% { opacity: calc(var(--lp-plate-peak) * 0.9); scale: 0.98; translate: var(--dx) var(--dy); }
+	68% { opacity: calc(var(--lp-plate-peak) * 0.9); scale: 1; translate: var(--dx) var(--dy); }
+	100% { opacity: var(--lp-plate-peak); scale: 1; translate: 0 0; }
+}
+
+/* 报头：逐行从遮罩下推上来。
+   每行外面套一层 overflow:hidden 的 .lp-splash__line 充当遮罩。 */
+.lp-splash__masthead {
+	display: grid;
+	gap: 0.1em;
+	margin: 0;
+	position: relative;
+	z-index: 1;
+	max-width: min(90vw, 40rem);
+	text-align: center;
+}
+
+.lp-splash__line {
+	display: block;
+	overflow: hidden;
+	padding-block: 0.08em;
+}
+
+.lp-splash__line > span {
+	/* inline 元素上 transform 无效，必须 inline-block */
+	display: inline-block;
+	font-size: clamp(1.6rem, min(7vw, 5.4vh), 3.4rem);
+	font-weight: 900;
+	letter-spacing: -0.01em;
+	line-height: 1.1;
+	color: var(--lp-ink);
+	transform: translate3d(0, 110%, 0);
+	animation: lp-word-up 0.55s cubic-bezier(0.16, 1, 0.3, 1) both;
+	animation-delay: calc(1.7s + var(--i, 0) * 90ms);
+}
+
+/* 第二行做小一点、弱一点，和第一行拉开层次 */
+.lp-splash__line:nth-child(2) > span {
+	font-size: clamp(0.72rem, min(2.4vw, 1.8vh), 1rem);
+	font-weight: 600;
+	letter-spacing: 0.42em;
+	text-indent: 0.42em;
+	color: var(--lp-ink-faint);
+}
+
+@keyframes lp-word-up {
+	to { transform: translate3d(0, 0, 0); }
+}
+
+/* 墨线进度条：纯 transform: scaleX，走合成层。
+   刻意不用 @property 驱动数字计数 —— 那是全局 at-rule，且老 Firefox 不插值。 */
+.lp-splash__bar {
+	position: relative;
+	display: block;
+	width: clamp(7rem, 18vmin, 11rem);
+	height: 1px;
+	background: var(--lp-line);
+	overflow: hidden;
+}
+
+.lp-splash__bar > i {
+	position: absolute;
+	inset: 0;
+	background: var(--lp-accent);
+	transform-origin: left center;
+	transform: scaleX(0);
+	animation: lp-bar 1.65s cubic-bezier(0.3, 0, 0.15, 1) 0.95s both;
+}
+
+@keyframes lp-bar {
+	to { transform: scaleX(1); }
+}
+
+/* 标签：两个词条叠在同一格里，第二幕换一次。
+   换词这一下是「套准完成」唯一的文字确认，比再加一层动画有用。 */
+.lp-splash__label {
+	display: grid;
+	place-items: center;
+	margin: 0;
+	font-family: var(--lp-font-mono);
+	font-size: 0.62rem;
+	letter-spacing: 0.3em;
+	text-indent: 0.3em;
+	text-transform: uppercase;
+	color: var(--lp-ink-faint);
+}
+
+.lp-splash__label-a,
+.lp-splash__label-b {
+	grid-area: 1 / 1;
+}
+
+.lp-splash__label-a {
+	animation: lp-label-out 0.3s ease-in 2.32s both;
+}
+
+.lp-splash__label-b {
+	color: var(--lp-accent);
+	animation: lp-label-in 0.42s var(--lp-ease) 2.42s both;
+}
+
+@keyframes lp-label-out {
+	to { opacity: 0; transform: translateY(-4px); }
+}
+
+@keyframes lp-label-in {
+	from { opacity: 0; transform: translateY(5px); }
+	to { opacity: 1; transform: none; }
+}
+
+/* ---------- 第二幕：锁定 ---------- */
+
+/* 菱形冲击波。两圈旋转 45° 的方框从中心扩散出去，
+   和「进入」按钮是同一个母题 —— 开屏最后一幕落在一枚菱形上，
+   然后菱形按钮出现，两边是接得上的。
+   translate/rotate/scale 分开写：rotate 固定 45°，动画只碰 scale，
+   两者不打架（合成顺序是 translate → rotate → scale）。 */
+.lp-splash__lock {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: clamp(3.4rem, 9vmin, 5.2rem);
+	aspect-ratio: 1;
+	translate: -50% -50%;
+	rotate: 45deg;
+	border: 1px solid var(--lp-accent);
+	border-radius: 14%;
+	opacity: 0;
+	pointer-events: none;
+	animation: lp-lock-ring 1.15s cubic-bezier(0.16, 1, 0.3, 1) 2.32s both;
+}
+
+/* 第二圈晚 0.14s，错开一点才像水波，两圈同时出会像一根粗边框 */
+.lp-splash__lock--late {
+	animation-delay: 2.46s;
+	animation-duration: 1.3s;
+	border-color: color-mix(in oklch, var(--lp-accent-2) 80%, transparent);
+}
+
+@keyframes lp-lock-ring {
+	0% { opacity: 0; scale: 0.35; }
+	16% { opacity: 0.95; }
+	100% { opacity: 0; scale: 3.1; }
+}
+
+/* 中心光晕：和冲击波同一时刻，给「咔哒」一下一个亮度上的重音 */
+.lp-splash__flash {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: clamp(11rem, 44vmin, 25rem);
+	aspect-ratio: 1;
+	translate: -50% -50%;
+	border-radius: 50%;
+	background: radial-gradient(
+		closest-side,
+		color-mix(in oklch, var(--lp-accent) 42%, transparent),
+		transparent 72%
+	);
+	opacity: 0;
+	pointer-events: none;
+	animation: lp-lock-flash 1s ease-out 2.32s both;
+}
+
+@keyframes lp-lock-flash {
+	0% { opacity: 0; scale: 0.55; }
+	20% { opacity: 0.85; }
+	100% { opacity: 0; scale: 1.45; }
+}
+
+/* 第三幕：套准框。淡入之后一直缓转，是第三幕里唯一持续不断的运动，
+   免得套准完成后到出纸前那 1.6 秒变成一段死时间。 */
+.lp-splash__frame {
+	position: absolute;
+	left: 50%;
+	top: 50%;
+	width: clamp(11rem, 30vmin, 18rem);
+	aspect-ratio: 1;
+	translate: -50% -50%;
+	border: 1px solid var(--lp-line-strong);
+	border-radius: 8%;
+	opacity: 0;
+	pointer-events: none;
+	/* 两条动画分别只碰 scale 和 rotate，互不覆盖 */
+	animation:
+		lp-frame-in 0.9s var(--lp-ease) 2.85s both,
+		lp-frame-spin 11s linear 2.85s infinite;
+}
+
+@keyframes lp-frame-in {
+	from { opacity: 0; scale: 0.78; }
+	to { opacity: 0.75; scale: 1; }
+}
+
+@keyframes lp-frame-spin {
+	to { rotate: 360deg; }
+}
+
+/* 第三幕：光泽横扫。唯一盖在报头之上的一层（z-index 2），
+   所以它会从标题和色版上一并掠过去，像成片过了一遍上光。 */
+.lp-splash__glint {
+	position: absolute;
+	inset: -12% -35%;
+	z-index: 2;
+	background: linear-gradient(
+		104deg,
+		transparent 38%,
+		color-mix(in oklch, var(--lp-ink) 13%, transparent) 50%,
+		transparent 62%
+	);
+	translate: -70% 0;
+	opacity: 0;
+	pointer-events: none;
+	animation: lp-glint 1.5s cubic-bezier(0.4, 0, 0.3, 1) 2.95s both;
+}
+
+@keyframes lp-glint {
+	0% { translate: -70% 0; opacity: 0; }
+	10% { opacity: 1; }
+	86% { opacity: 1; }
+	100% { translate: 70% 0; opacity: 0; }
+}
+
+/* ---------- 内容入场整体推迟到帘子开始动的那一刻 ---------- */
+/* 4.32 紧贴 --lp-exit(4.40)：入场动画 0.8s，5.00 帘子完全打开时它已经跑到
+   85%。晚了会在帘子后面干等，早了会在帘子还盖着的时候播完、白播。 */
+html[data-lp-intro="on"] .lp {
+	--lp-intro-delay: 4.32s;
+}
+
+/* ---------- 滚轮 / 按键即跳过 ----------
+   （鼠标点击不再跳过，见 .lp-splash 的 pointer-events 注释） */
+/* 只给变量换值，整条时间轴就提前收场 —— 没有 setInterval，没有逐帧 JS。
+   改 animation-delay 会让已经启动的动画直接跳到新位置（起算点是固定的），
+   所以正在延迟期的入场动画会当场进入活跃期，而不是重播。 */
+html[data-lp-intro="on"][data-lp-intro-done] .lp-splash {
+	--lp-exit: 0s;
+	--lp-exit-dur: 0.26s;
+	--lp-stage-out: 0s;
+	/* 舞美淡出也压短：5 秒的时间轴，如果在第 1 秒跳过，
+	   原来 0.38s 的淡出会让人先看到半截十字标慢慢化掉 */
+	--lp-stage-out-dur: 0.16s;
+}
+
+/* 内容这一侧同样要归零。少了这条，点了跳过之后帘子 0.26s 就开了，
+   但 Hero 还会在帘子底下干等 4.32s —— 比不跳还难受。 */
+html[data-lp-intro="on"][data-lp-intro-done] .lp {
+	--lp-intro-delay: 0s;
+}
+
+/* =============================================================================
+ * 响应式
+ *
+ * 整页恒等于一屏，所以小屏不是「自动换行、页面变高」，而是
+ * 「整体缩小 + 减少内容」：高度预算不会因为屏幕小而变多。
+ * 竖向尺寸基本都写在 clamp 里的 vh 档位上，这里只管布局和取舍。
+ * ============================================================================= */
+
+@media (max-width: 767px) {
+	/* 手机端退成 2×2 四张功能卡。隐藏的三张里，分类/标签是次要信息，
+	   碎碎念和关于分别还有 /diary/ 和 /about/ 可去 —— 挤到读不清不如不显示。 */
+	.lp-bento {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+		grid-template-rows: repeat(2, minmax(0, 1fr));
+	}
+
+	.lp-card {
+		grid-column: span 1;
+	}
+
+	.lp-card--sm-hide {
+		display: none;
+	}
+
+	/* 卡更矮了，最新文章留两条；多出来的裁一半不如不渲染 */
+	.lp-post:nth-child(n + 3) {
+		display: none;
+	}
+
+	/* 卡片宽度只有桌面的一半，6 个入口会从 2 行变 3 行撑破行高，
+	   这里把每格压矮一档，让它稳稳排回 2×3 */
+	.lp-quick {
+		grid-template-columns: repeat(2, minmax(0, 1fr));
+	}
+
+	.lp-quick-item {
+		padding: 0.3rem 0.25rem;
+	}
+
+	.lp-quick-glyph {
+		font-size: 0.86rem;
+	}
+
+	/* 新背景层在小屏上做减法。硬边色块和 11px 网点在小屏上一密就显脏，
+	   极光帘幕占位最大而收益最低，三样整体撤掉。
+	   点阵加密到 22px（层变少了，颗粒感得自己扛），墨环缩小避免糊满整屏。 */
+	.lp-plates,
+	.lp-halftone,
+	.lp-aurora {
+		display: none;
+	}
+
+	.lp-rings { width: min(110vmax, 1400px); }
+	.lp-sweep { --lp-sweep-opacity: 0.22; }
+
+	.lp-dots { background-size: 22px 22px; }
+	.lp-dots-hot { background-size: 22px 22px; }
+
+	/* 菱形按钮在窄屏上会被夹成「菱形比标签还小」。
+	   390 宽的手机上 13vw 只有 51px，比 4.6rem 的下限还小，于是下限一直赢，
+	   菱形被钉死在 64px；而标签要 58.6px 宽 —— 菱形的内接正方形边长只有
+	D/√2 = 45px，四角到中心的曼哈顿距离 = (58.6+18.5)/2 = 38.6 > 32.2，
+	   实测溢出 6.4px，字被裁掉两个角。
+	   两处一起收：菱形放宽到 23vw（390 宽 → 90px，也才够拇指点），
+	   标签的固定开销（间距 + 箭头）从 23px 压到 16px。
+	   剩下的字号自动兜住 —— 手机上 1.9vw = 7.4px 低于下限，fs 恒为 0.88rem。 */
+	.lp-cta {
+		--lp-d: clamp(4.6rem, 24vw, 8.4rem);
+	}
+
+	.lp-enter-label {
+		gap: 0.3rem;
+	}
+
+	.lp-enter-arrow {
+		width: 0.86rem;
+	}
+}
+
+/* 高度回收：1280×720 / 1366×768 这一档最紧。
+   「进入」按钮从约 42px 长到约 56px，Hero 多出来的这十几像素必须从别处找回来，
+   否则 Bento 两行会被压到 min-content 以下，卡片内部开始裁字。
+   这里回收约 33px，扣掉按钮的 14px 还有富余。 */
+@media (max-height: 780px) {
+	/* 按钮就在旁边，「按 Enter 进入」这行提示价值最低，先砍它 */
+	.lp-hint { display: none; }
+	.lp-sub { min-height: 0; }
+	.lp-cta { margin-top: clamp(0.6rem, 1.6vh, 1.1rem); }
+	.lp-avatar-wrap { width: clamp(2.6rem, 7vh, 3.5rem); }
+}
+
+/* 矮窗口：先牺牲装饰，再牺牲不关键的信息，最后保证「进入」按钮始终可见 */
+@media (max-height: 720px) {
+	.lp-avatar-wrap { width: clamp(2.3rem, 6.4vh, 3.3rem); }
+	.lp-eyebrow { display: none; }
+}
+
+@media (max-height: 600px) {
+	.lp-hint { display: none; }
+	.lp-sub { min-height: 0; }
+}
+
+@media (max-height: 480px) {
+	.lp-avatar-wrap { display: none; }
+}
+
+/* 触屏设备去掉悬浮位移与磁吸 */
+@media (hover: none) {
+	.lp-card:hover { translate: none; }
+	/* 触屏没有 hover，复位玻璃的放大，免得按下去弹不回来 */
+	.lp-cta:hover .lp-enter-glass { scale: 1; }
+	.lp-dots-hot { opacity: 0 !important; }
+	.lp-spot { opacity: 0 !important; }
+}
+
+/* =============================================================================
+ * 无障碍 / 降低动效
+ * ============================================================================= */
+
+@media (prefers-reduced-motion: reduce) {
+	.lp *,
+	.lp *::before,
+	.lp *::after {
+		animation-duration: 0.001ms !important;
+		animation-iteration-count: 1 !important;
+		/* delay 也要清：只压 duration 的话，第 7 张卡仍会先隐身 0.4s 再出现 */
+		animation-delay: 0s !important;
+		transition-duration: 0.001ms !important;
+		transition-delay: 0s !important;
+	}
+
+	/* 开屏整块撤掉 —— 不是「加速播完」，是根本不出现。
+	   上面那条通配规则只压时长，遮罩仍会存在一帧；这里直接 display:none。
+	   下面那行把入场延迟归零，页面内容立刻在位。
+	   （正常路径上 head 内联脚本压根不会写 data-lp-intro，
+	     这两条是防「加载后才改系统设置」的兜底。） */
+	.lp-splash { display: none !important; }
+	.lp { --lp-intro-delay: 0s !important; }
+
+	/* 呼吸光晕是无限循环，通配规则的 animation-duration 管不到它的节奏，
+	   直接停掉并固定在一个中间态 */
+	.lp-cta-halo { animation: none; opacity: 0.5; }
+	.lp-cta-inner { transition: none; }
+}

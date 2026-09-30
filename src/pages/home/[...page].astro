@@ -5,10 +5,18 @@ import PostPage from "@components/features/posts/PostPage.astro";
 import MainGridLayout from "@layouts/MainGridLayout.astro";
 import type { GetStaticPaths } from "astro";
 
-import { siteConfig } from "../config";
-import { PAGE_SIZE } from "../constants/constants";
-import { getSortedPosts } from "../utils/content-utils";
-import { initPostIdMap } from "../utils/permalink-utils";
+import { siteConfig } from "@/config";
+import { PAGE_SIZE } from "@/constants/constants";
+import { getSortedPosts } from "@/utils/content-utils";
+import { initPostIdMap } from "@/utils/permalink-utils";
+
+/**
+ * 文章列表 —— 站点原来的首页，现在挂在 /home/ 下。
+ *
+ * 根路径 "/" 让给了起始页（src/pages/index.astro）。这里换目录就够了：
+ * paginate() 会按当前路由生成 /home/、/home/2/…，page.url.prev/next 也是。
+ * 只有 Pagination.astro 里的页码链接是手写的，那边跟着改成从 page.url 反推。
+ */
 
 const showCategoryBar = siteConfig.postListLayout.categoryBar?.enable ?? false;
 

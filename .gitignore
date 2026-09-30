@@ -1,5 +1,7 @@
 # build output
 dist/
+# 手工留的构建产物备份，别让 sync-content.js 结尾的 `git add .` 把它卷进提交
+dist_bak/
 
 # generated types
 .astro/

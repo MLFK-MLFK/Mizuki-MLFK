@@ -3,6 +3,8 @@
  * 处理移动端目录的状态管理和交互逻辑
  */
 
+import { HOME_PATH } from "@/constants/constants";
+
 export interface TOCItem {
 	id: string;
 	text: string;
@@ -120,11 +122,18 @@ export function generatePostItems(): PostItem[] {
 }
 
 /**
- * 检查是否为首页
+ * 检查是否为首页（分页文章列表）
+ *
+ * 首页现在挂在 /home/ 下，翻页是 /home/2/、/home/3/……
+ * 站点根 "/" 是起始页，它不用 MainGridLayout，也就没有这个 TOC，
+ * 所以不必再把它算进来。
  */
 export function checkIsHomePage(): boolean {
 	const pathname = window.location.pathname;
-	return pathname === "/" || pathname === "" || /^\/\d+\/?$/.test(pathname);
+	return (
+		pathname === HOME_PATH ||
+		new RegExp(`^${HOME_PATH}\\d+/?$`).test(pathname)
+	);
 }
 
 /**

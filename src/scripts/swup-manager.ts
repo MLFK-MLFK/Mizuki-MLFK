@@ -240,3 +240,49 @@ export async function initSwupManager(): Promise<void> {
 	const manager = getSwupManager();
 	await manager.init();
 }
+
+/* -------------------------------------------------------------------------- */
+/* 起始页（站点根 /）的浏览器前进 / 后退                                       */
+/* -------------------------------------------------------------------------- */
+
+/**
+ * astro.config.mjs 的 ignore 只挡得住「点击」——swup 处理点击时会先问
+ * shouldIgnoreVisit；但 handlePopState 根本不问这个（它只看
+ * skipPopStateHandling），所以历史导航是另一条路径。
+ *
+ * 又因为 @swup/astro 没有把 skipPopStateHandling 透传给 swup 实例，
+ * 这条路径没有配置入口，只能在这里兜底。
+ *
+ * 时机是够的：popstate 触发时 location 已经变成目标地址，而 swup 的 DOM 替换
+ * 还在 await 之后、尚未发生，所以 document 里躺着的仍是「旧」页面的外壳。
+ * 于是用 pathname 判断「要去起始页」，用 #lp-root 判断「现在还在起始页」，
+ * 两者任一成立就说明这次历史导航有一端是起始页，换成整页加载。
+ *
+ * reload 是同步发起的：swup 那次异步 fetch 会被随之而来的页面卸载取消，
+ * 不会出现「换了一半」的中间态。
+ */
+/**
+ * 起始页就是站点根，pathname 恰好是 "/" —— 所以这里必须是**精确**匹配。
+ * 换成前缀匹配（startsWith("/")）会把每一次历史导航都判成「涉及起始页」，
+ * 结果就是全站前进后退全部退化成整页刷新。
+ */
+const LANDING_PAGE_PATH = /^\/$/;
+
+function involvesStartPage(): boolean {
+	// 目标是起始页（后退回起始页 / 前进到起始页）
+	if (LANDING_PAGE_PATH.test(window.location.pathname)) {
+		return true;
+	}
+	// 当前文档仍是起始页（从起始页后退到内容页）
+	return !!document.getElementById("lp-root");
+}
+
+if (typeof window !== "undefined") {
+	window.addEventListener("popstate", () => {
+		if (!involvesStartPage()) {
+			return;
+		}
+		console.log("SwupManager: 历史导航涉及起始页，改用整页加载");
+		window.location.reload();
+	});
+}

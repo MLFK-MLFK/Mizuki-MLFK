@@ -161,20 +161,28 @@ var Paul_Pio = function (prop) {
 		// 右侧按钮
 		buttons: () => {
 			// 返回首页 - 使用 Swup 无刷新跳转
+			//
+			// 注意：这里指的是**文章列表** /home/，不是站点根。
+			// 根路径 "/" 现在是起始页（开屏动画那一页），点过来要等 5 秒开屏。
+			// 本站首页的唯一定义在 src/constants/constants.ts 的 HOME_PATH，
+			// 这个文件在 public/ 下、不走构建，只能手抄一份 —— 那边改了记得回来同步。
+			var homePath = "/home/";
 			elements.home.onclick = () => {
 				// 检查 Swup 是否可用
 				if (typeof window !== "undefined" && window.swup) {
 					try {
 						// 使用 Swup 进行无刷新跳转
-						window.swup.navigate("/");
+						// （在起始页上点这个按钮，astro.config.mjs 的 ignore 会把
+						//   它降级成整页加载 —— 两边 <main> 的结构对不上，不能换）
+						window.swup.navigate(homePath);
 					} catch (error) {
 						console.error("Swup navigation failed:", error);
 						// 降级到普通跳转
-						location.href = current.root;
+						location.href = current.root + "home/";
 					}
 				} else {
 					// Swup 不可用时使用普通跳转
-					location.href = current.root;
+					location.href = current.root + "home/";
 				}
 			};
 			elements.home.onmouseover = () => {

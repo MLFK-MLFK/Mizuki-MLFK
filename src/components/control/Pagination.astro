@@ -60,11 +60,24 @@ if (r < page.lastPage) {
 	pages.push(page.lastPage);
 }
 
+/**
+ * 页码链接的前缀 —— 也就是「列表首页」的地址。
+ *
+ * 以前这里写死成 "/" 和 `/${p}/`，能成立只因为列表恰好长在根路径上。
+ * 列表挪到 /home/ 之后，写死就会把第 2 页指到 /2/（起始页没了、文章列表也没了）。
+ *
+ * 不写死 "/home/"、改成从 page.url 反推，是为了以后挪列表不用回来改第二处：
+ *   page.url.first 只在「当前不是第一页」时才有值，正好兜住两种情况 ——
+ *   站在第一页时它就是 undefined，此时 current 本身就是列表首页。
+ *   站在第 2 页时 first 是 /home/，current 是 /home/2/。
+ */
+const listBase = page.url.first ?? page.url.current;
+
 const getPageUrl = (p: number) => {
 	if (p === 1) {
-		return "/";
+		return listBase;
 	}
-	return `/${p}/`;
+	return `${listBase}${p}/`;
 };
 ---
 

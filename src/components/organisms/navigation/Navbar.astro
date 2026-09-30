@@ -2,9 +2,10 @@
 import { Icon } from "astro-icon/components"
 
 import { navBarConfig, siteConfig } from "../../../config"
+import { HOME_PATH } from "../../../constants/constants"
 import { LinkPresets } from "../../../constants/link-presets"
 import { LinkPreset, type NavBarLink } from "../../../types/config"
-import { url } from "../../../utils/url-utils"
+import { pathsEqual, url } from "../../../utils/url-utils"
 import LayoutSwitch from "../../control/LayoutSwitch.svelte"
 import ThemeSwitch from "../../control/ThemeSwitch.svelte"
 import DisplaySettings from "../../features/settings/DisplaySettings.svelte"
@@ -24,8 +25,9 @@ const navbarTransparentMode =
 const modeSwitchDisplay =
 	siteConfig.wallpaperMode?.showModeSwitchOnMobile || "desktop";
 
-// 检查是否为首页
-const isHomePage = Astro.url.pathname === "/" || Astro.url.pathname === "";
+// 是否为「首页」= 文章列表 /home/。根路径 "/" 现在是起始页，
+// 它不用 MainGridLayout，压根不会有导航栏，所以这里不必再考虑。
+const isHomePage = pathsEqual(Astro.url.pathname, HOME_PATH);
 
 const links: NavBarLink[] = navBarConfig.links.map(
 	(item: NavBarLink | LinkPreset): NavBarLink => {
@@ -52,7 +54,7 @@ const iconWebpSrc = hasIconPngFallback ? iconSrc.replace(/\.png$/i, ".webp") : i
 <div id="navbar" class="z-50 onload-animation group" data-transparent-mode={navbarTransparentMode} data-is-home={isHomePage}>
     <div class="absolute h-8 left-0 right-0 -top-8 bg-[var(--card-bg)] transition"></div> <!-- used for onload animation -->
     <div class:list={[className, "!overflow-visible max-w-[var(--page-width)] h-[4.5rem] mx-auto flex items-center justify-between px-4"]}>
-        <a href={url('/')} class="btn-plain scale-animation rounded-lg h-[2.5rem] md:h-[3.25rem] md:[.enable-banner_&]:h-[2.5rem] md:[.enable-banner_&]:group-[.scrolled]:h-[3.25rem] px-5 font-bold active:scale-95 shrink-0 transition-all duration-300">
+        <a href={url(HOME_PATH)} class="btn-plain scale-animation rounded-lg h-[2.5rem] md:h-[3.25rem] md:[.enable-banner_&]:h-[2.5rem] md:[.enable-banner_&]:group-[.scrolled]:h-[3.25rem] px-5 font-bold active:scale-95 shrink-0 transition-all duration-300">
             <div class="flex flex-row items-center text-md">
 				{/* 使用navbarTitle配置或默认配置 */}
                 {siteConfig.navbarTitle ? (

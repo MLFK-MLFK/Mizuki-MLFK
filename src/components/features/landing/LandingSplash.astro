@@ -1,0 +1,95 @@
+---
+import { siteConfig } from "@/config";
+
+/**
+ * 开屏动画 —— 「四色套印」
+ *
+ * 语义：像一次印刷套色的叠加过程 —— 三张色版先错位落下（mis-registration），
+ * 再逐一对齐「套准」并「锁定」（菱形冲击波 + 光泽横扫），
+ * 最后两块印张上下分开，露出已经就位的起始页。
+ *
+ * 全长 5.00s，四幕：
+ *   一 制版  0.00–2.37  套准十字自绘 + 三色版错落套准
+ *   二 锁定  2.30–3.47  十字回弹、菱形冲击波、标签 SETUP→ALIGNED
+ *   三 印刷  2.85–4.45  套准框缓转 + 光泽横扫
+ *   四 出纸  4.02–5.00  舞美淡出、双印张分开
+ *
+ * 防翻车的地基（这是本组件唯一重要的设计决定）：
+ *   遮罩默认 display:none，只有 html[data-lp-intro="on"] 时才渲染。
+ *   那个属性由 index.astro 的 <head> 内联脚本前置校验通过后才写入。
+ *   所以 JS 挂了 / prefers-reduced-motion / 校验没过 —— 三种情况都什么都不加，
+ *   屏幕上根本没有遮罩。退场靠 animation-fill-mode 落到 visibility:hidden，
+ *   不靠 setTimeout 删节点。
+ *
+ * 必须挂在 #lp-root（.lp）内部：这样才被 landing.css 里
+ * `@media (prefers-reduced-motion: reduce) { .lp * { animation-duration:.001ms !important } }`
+ * 那条通配规则命中（通配只匹配 .lp 的后代，管不到 .lp 自身的伪元素）。
+ * 用 absolute 而不是 fixed：.lp 本身就是 100svh + overflow:hidden 的视口，
+ * absolute 精确贴合、且帘子滑出时正好被裁掉。
+ *
+ * 样式见 src/styles/landing/landing.css 的「开屏」段。
+ */
+
+const plainTitle = (siteConfig.title ?? "").replace(/^<|>$/g, "");
+const masthead = [plainTitle || "起始页", "START"];
+---
+
+<div class="lp-splash" data-lp-splash aria-hidden="true">
+	<div class="lp-splash__sheet lp-splash__sheet--top">
+		<span class="lp-splash__edge"></span>
+	</div>
+	<div class="lp-splash__sheet lp-splash__sheet--bot">
+		<span class="lp-splash__edge"></span>
+	</div>
+
+	<div class="lp-splash__stage">
+		{/*
+			套准标记：三张色版 + 套准十字 + 锁定冲击波 + 套准框，全都同心。
+			它们必须共用一个「套准点」才有物理依据 —— 第二幕的「咔哒」就是这个点。
+
+			这一整块是舞台里的第一个**流内**元素（不像之前色版是 inset:0 的绝对层，
+			那时候它会正正糊在报头底下：三版对齐后 screen 混出一块浅灰，
+			白字压上去就没了。现在就位在自己的行里，报头永远在它下方）。
+		*/}
+		<div class="lp-splash__mark">
+			<div class="lp-splash__plates">
+				<span class="lp-plate"></span>
+				<span class="lp-plate"></span>
+				<span class="lp-plate"></span>
+			</div>
+
+			{/* 十字排在色版之后：mix-blend-mode 的色版会把自己和背景混在一起，
+			    压在它下面的东西一样会被混掉，十字要够锐利就得画在它上面 */}
+			<svg class="lp-splash__reg" viewBox="0 0 44 44">
+				<circle pathLength="1" cx="22" cy="22" r="15"></circle>
+				<path pathLength="1" d="M22 1v12M22 31v12M1 22h12M31 22h12"></path>
+			</svg>
+
+			<span class="lp-splash__frame" aria-hidden="true"></span>
+			<span class="lp-splash__flash" aria-hidden="true"></span>
+			<span class="lp-splash__lock" aria-hidden="true"></span>
+			<span class="lp-splash__lock lp-splash__lock--late" aria-hidden="true"></span>
+		</div>
+
+		<p class="lp-splash__masthead">
+			{
+				masthead.map((line, i) => (
+					<span class="lp-splash__line">
+						<span style={`--i:${i}`}>{line}</span>
+					</span>
+				))
+			}
+		</p>
+
+		<span class="lp-splash__bar"><i></i></span>
+
+		{/* 两个标签叠在同一格：套准锁定那一刻前者淡出、后者淡入 */}
+		<p class="lp-splash__label">
+			<span class="lp-splash__label-a">SETUP · 套色套准</span>
+			<span class="lp-splash__label-b">ALIGNED · 套准完成</span>
+		</p>
+
+		{/* 光泽横扫：压在所有人之上，是唯一 z-index 高过报头的一层 */}
+		<span class="lp-splash__glint" aria-hidden="true"></span>
+	</div>
+</div>

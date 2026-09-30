@@ -1,0 +1,84 @@
+---
+import LandingBento from "@components/features/landing/LandingBento.astro";
+import LandingFooter from "@components/features/landing/LandingFooter.astro";
+import LandingHero from "@components/features/landing/LandingHero.astro";
+import LandingScene from "@components/features/landing/LandingScene.astro";
+import LandingSplash from "@components/features/landing/LandingSplash.astro";
+import Layout from "@layouts/Layout.astro";
+import { profileConfig, siteConfig } from "@/config";
+
+import "../styles/landing/landing.css";
+
+/**
+ * 起始页 —— 现在就是站点首页 "/"
+ *
+ *   /       →  起始页，开屏动画 + 中间一个「进入」按钮
+ *   点按钮 / 按 Enter  →  跳转 /home/（原来的首页，那个分页文章列表）
+ *
+ * 之所以是 index.astro 而不是 start.astro：这个页面占了根路径，
+ * 原来的首页被挪到 src/pages/home/[...page].astro。
+ * 老书签 /start/ 由 astro.config.mjs 的 redirects 兜住。
+ *
+ * 样式收在 src/styles/landing/landing.css，逻辑收在 src/scripts/landing/index.ts。
+ *
+ * 单屏布局：整页锁在 100svh，不滚动。
+ *   .lp 是 flex 纵向容器，Hero 按内容占高，Bento 吃掉剩余高度，
+ *   页脚定高。三块加起来恒等于一屏，所以内部所有竖向尺寸都用
+ *   min(Xvw, Yvh) 的 clamp 写 —— 窗口变矮时自动等比收缩，而不是溢出。
+ *
+ * 版块（自上而下）：
+ *   Hero（公告 / 头像 / 标题 / 打字机 / 进入按钮）→ Bento（7 张卡，两行）→ 页脚（单行）
+ *
+ * 主题跟随站点明暗（.dark 挂在 <html>），强调色取自站点的 --hue，
+ * 所以换主题色或切换明暗都不需要动这里。
+ */
+
+// 只注入色相，明度/彩度交给 CSS 里按主题各写一套的 token。
+// 站点运行时的 --hue 会优先于这个值，这里只是没跑脚本时的兜底。
+const hue = siteConfig.themeColor.hue;
+
+const plainTitle = (siteConfig.title ?? "").replace(/^<|>$/g, "");
+const description = `${plainTitle} · ${profileConfig.name} 的个人博客`;
+
+// 不传 title：这一页就是首页，Layout 会退到 siteConfig.title（+ subtitle），
+// 而不是拼成「起始页 - 站点名」—— 首页的标题不该带自己的页名。
+---
+
+<Layout description={description}>
+	<Fragment slot="head">
+		{/*
+			开屏动画的前置校验。必须是 is:inline —— 普通 Astro <script> 会被打包成
+			defer，赶不上首帧，遮罩就会先闪一下再出现。
+			三件事，任一不满足就什么都不做（.lp-splash 默认 display:none）：
+			  1. 用户要减弱动效  → 直接不播
+			  2. 浏览器不支持 matchMedia / dataset 出错 → catch 兜住
+			把 data-lp-intro 的写入留在 try 里面，别挪出去。
+		*/}
+		<script is:inline>
+			try {
+				if (matchMedia("(prefers-reduced-motion: reduce)").matches) throw 0;
+				document.documentElement.dataset.lpIntro = "on";
+			} catch (e) {}
+		</script>
+	</Fragment>
+
+	<main id="swup-container">
+		<div id="lp-root" class="lp" style={`--lp-hue:${hue}`}>
+			<LandingScene />
+			<LandingSplash />
+
+			<div class="lp-main">
+				<LandingHero />
+				<LandingBento />
+			</div>
+
+			<LandingFooter />
+		</div>
+	</main>
+</Layout>
+
+<script>
+	import { initLanding } from "../scripts/landing";
+
+	initLanding();
+</script>

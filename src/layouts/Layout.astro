@@ -9,8 +9,8 @@ const BANNER_HEIGHT = 35;
 const BANNER_HEIGHT_EXTEND = 30;
 const BANNER_HEIGHT_HOME = BANNER_HEIGHT + BANNER_HEIGHT_EXTEND;
 
-import { PAGE_WIDTH } from "../constants/constants";
-import { pathsEqual, url } from "../utils/url-utils";
+import { HOME_PATH, PAGE_WIDTH } from "../constants/constants";
+import { pathsEqual } from "../utils/url-utils";
 import "../styles/main.css";
 import "../styles/mobile-navbar.css";
 import "../styles/wallpaper-navbar-transparent.css";
@@ -37,7 +37,9 @@ let { title, banner, description, lang, setOGTypeArticle, postSlug } =
 // apply a class to the body element to decide the height of the banner, only used for initial page load
 // Swup can update the body for each page visit, but it's after the page transition, causing a delay for banner height change
 // so use Swup hooks instead to change the height immediately when a link is clicked
-const isHomePage = pathsEqual(Astro.url.pathname, url("/"));
+// 「首页」= 文章列表 /home/，不是站点根 —— 根路径现在是起始页，
+// 它虽然也走这个 Layout，但没有 Banner，"lg:is-home" 那套高度补偿对它无意义。
+const isHomePage = pathsEqual(Astro.url.pathname, HOME_PATH);
 
 // defines global css variables
 // why doing this in Layout instead of GlobalStyles: https://github.com/withastro/astro/issues/6728#issuecomment-1502203757
@@ -92,10 +94,13 @@ const enableBanner = !!siteConfig.banner.src;
 let pageTitle: string;
 if (title) {
 	pageTitle = `${title} - ${siteConfig.title}`;
+} else if (siteConfig.subtitle && siteConfig.subtitle !== siteConfig.title) {
+	pageTitle = `${siteConfig.title} - ${siteConfig.subtitle}`;
 } else {
-	pageTitle = siteConfig.subtitle
-		? `${siteConfig.title} - ${siteConfig.subtitle}`
-		: siteConfig.title;
+	// 副标题缺省或与主标题重复时不再拼一遍 —— 当前的 config.ts 里
+	// title 和 subtitle 都是「mkの后花园」，照旧拼会得到
+	// 「mkの后花园 - mkの后花园」。首页（不传 title）正好走这一条。
+	pageTitle = siteConfig.title;
 }
 
 let ogImageUrl: string | undefined;

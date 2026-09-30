@@ -42,6 +42,15 @@ export default defineConfig({
 
 	output: "static",
 
+	// 起始页原先在 /start/，现在顶掉根路径成了首页，文章列表退到 /home/。
+	// 老书签（还有浏览器里存的历史记录）指向 /start/，给它一条静态跳转。
+	// output:"static" 下 Astro 会生成一个只含 meta refresh 的 /start/index.html。
+	// 只写不带斜杠的那个键：trailingSlash:"always" 会把 "/start/" 归一成同一条路由，
+	// 两条都写会撞车（router 直接报 "defined in both"）。
+	redirects: {
+		"/start": "/",
+	},
+
 	integrations: [
 		oddmisc({
 			umami: {
@@ -59,17 +68,42 @@ export default defineConfig({
 			updateHead: process.env.NODE_ENV === "production",
 			updateBodyClass: false,
 			globalInstance: true,
-			// 滚动相关配置优化
-			resolveUrl: (url) => url,
-			animateHistoryBrowsing: false,
-			skipPopStateHandling: (event) => {
-				// 跳过锚点链接的处理，让浏览器原生处理
-				return (
-					event.state &&
-					event.state.url &&
-					event.state.url.includes("#")
-				);
-			},
+			// 起始页（站点根 /）不参与 swup 换页。
+			//
+			// swup 只按 containers:["main"] 替换 <main> 元素本身。内容页的 <main>
+			// 深埋在 MainGridLayout 的 #main-grid 里，导航条 / 横幅 / 侧栏都在
+			// <main> 之外；起始页则完全不用 MainGridLayout，<main> 是 <body> 的
+			// 直接子元素。两边外壳对不上，于是：
+			//   内容页 → 起始页   新的 <main> 落进残留的 #main-grid，导航条/横幅/侧栏还在
+			//   起始页 → 内容页   <main> 落进裸 <body>，整个栅格外壳丢失
+			// 两种情况都只能刷新才恢复。
+			//
+			// 命中 ignore 的链接 swup 不会 preventDefault（Swup.ts handleLinkClick），
+			// 浏览器会直接整页加载，两个方向都回到正确的文档。
+			//
+			// 起始页现在就是 "/"，而字符串项走的是 url.startsWith(ignore)（见
+			// @swup/astro/dist/script.js 的 shouldIgnore），写 "/" 等于忽略全站 ——
+			// 所以这里只能用回调做精确比对。回调收到的是 pathname + search + hash。
+			//
+			// 第二条覆盖面比看上去大，但两条都必须留着：
+			//   1) 精确命中根路径 —— 拦住所有「点向起始页」的链接
+			//   2) 拦住起始页内部的所有链接（整块 #lp-root 都在起始页里），
+			//      **以及从起始页出发的一切跳转**。后半句是关键：Pio 看板娘之类的
+			//      组件走的是 window.swup.navigate()，它不经过 handleLinkClick，
+			//      拿不到 el，只能靠「当前文档还在起始页」这个事实拦下来。
+			//      少了它，在起始页上点任何 swup 跳转都会把 <main> 换成半截外壳。
+			// 函数会被序列化后重建，只能用参数和全局变量，不能引用外层作用域 ——
+			// document 是全局，所以下面这么写是安全的。
+			// 另外 data-no-swup 由 swup 默认的 ignoreVisit 兜着，不需要写在这里。
+			ignore: [
+				(_url) => _url === "/",
+				(_url, { el }) =>
+					!!document.getElementById("lp-root") ||
+					!!el?.closest("#lp-root"),
+			],
+			// 注意：resolveUrl / animateHistoryBrowsing / skipPopStateHandling
+			// 不在 @swup/astro 的 Options 里，写了也不会透传给 swup 实例，
+			// 需要的话得走 globalInstance 上的 window.swup.options。
 		}),
 		icon(),
 		expressiveCode({
@@ -206,6 +240,7 @@ export default defineConfig({
 				clientFiles: [
 					"src/layouts/Layout.astro",
 					"src/pages/index.astro",
+					"src/pages/home/[...page].astro",
 					"src/components/widgets/music-player/MusicPlayer.svelte",
 					"src/components/organisms/navigation/Search.svelte",
 					"src/components/control/ThemeSwitch.svelte",

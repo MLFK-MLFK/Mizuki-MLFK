@@ -1,0 +1,305 @@
+---
+import { Icon } from "astro-icon/components";
+import Image from "@components/atoms/Image/Image.astro";
+import { profileConfig } from "@/config";
+import { HOME_PATH } from "@/constants/constants";
+import { getDiaryList } from "@/data/diary";
+import {
+	getCategoryList,
+	getSortedPostsList,
+	getTagList,
+} from "@/utils/content-utils";
+import { url } from "@/utils/url-utils";
+import { getQuickLinks, isReachablePage } from "./nav-links";
+
+/**
+ * 起始页「概览」区：最新文章 / 站点统计 / 现在时刻 / 快捷入口 / 分类·标签 / 碎碎念 / 关于
+ *
+ * 数据全部在构建期取好，运行期只有时钟、数字滚动是 JS。
+ *
+ * 十二栅格两行铺满，正好吃掉 Hero 与页脚之间的全部高度：
+ *   第一行  6 + 3 + 3   最新文章 / 站点统计 / 现在时刻
+ *   第二行  3 + 3 + 3 + 3   快捷入口 / 分类·标签 / 碎碎念 / 关于
+ * 行高是 1fr（见 landing.css 的 .lp-bento），所以卡片高度跟着窗口走。
+ * 每张卡里的条数都刻意压到最少 —— 多一条就会把行撑破，整页重新出现滚动条。
+ */
+
+const allPosts = await getSortedPostsList();
+const [tagList, categoryList] = await Promise.all([
+	getTagList(),
+	getCategoryList(),
+]);
+
+const recentPosts = allPosts.slice(0, 4);
+const topTags = [...tagList].sort((a, b) => b.count - a.count).slice(0, 8);
+const topCategories = [...categoryList]
+	.sort((a, b) => b.count - a.count)
+	.slice(0, 6);
+const latestDiary = getDiaryList(1)[0];
+
+// 时区只在这里写一次，下面两个格式化器和时钟卡的 data-tz 都用它。
+// 注意不能直接拿 siteConfig.timeZone 来用：那个是数字偏移
+// （config.ts 里 SITE_TIMEZONE = 8），而 Intl 要的是 IANA 名字。
+// 所以要改站点时区的话，这里和 config.ts 得一起改。
+const timeZone = "Asia/Shanghai";
+
+const dateFormatter = new Intl.DateTimeFormat("zh-CN", {
+	month: "2-digit",
+	day: "2-digit",
+	timeZone,
+});
+
+const diaryFormatter = new Intl.DateTimeFormat("zh-CN", {
+	year: "numeric",
+	month: "2-digit",
+	day: "2-digit",
+	timeZone,
+});
+
+// 站内入口从 navBarConfig 推导，不再手写一份。详见 ./nav-links.ts ——
+// 那里会一并滤掉 featurePages 关掉的页面和 navBarConfig 里指向不存在
+// 页面的项，所以卡片上不会再出现点进去是 404 的链接。
+const quickLinks = getQuickLinks();
+
+const profileLinks = (profileConfig.links ?? []).map((link) => ({
+	name: link.name,
+	url: link.url,
+	icon: link.icon,
+}));
+
+// 「碎碎念」卡读的是 src/data/diary.ts 里手写的数组，和 /diary/ 这个页面
+// 是否启用无关。当前 featurePages.diary 是 false，/diary/ 会跳 404，
+// 所以「全部 →」那个入口要跟着一起收起来。
+const diaryPageAvailable = isReachablePage("/diary/");
+---
+
+<section class="lp-overview" id="overview" aria-label="站点概览">
+	<div class="lp-shell">
+		<div class="lp-bento">
+			<!-- 最新文章 -->
+			<article class="lp-card lp-card--half" data-lp-spotlight>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:article-rounded" /></span
+					>
+					<h2 class="lp-card-title">最新文章</h2>
+					<span class="lp-card-sub">{allPosts.length} 篇</span>
+				</header>
+
+				{
+					recentPosts.length > 0 ? (
+						<div class="lp-posts">
+							{recentPosts.map((post) => (
+								<a class="lp-post" href={post.url ?? url(HOME_PATH)}>
+									<span class="lp-post-dot" aria-hidden="true" />
+									<span class="lp-post-name">{post.data.title}</span>
+									<time
+										class="lp-post-date"
+										datetime={post.data.published.toISOString()}
+									>
+										{dateFormatter.format(post.data.published)}
+									</time>
+								</a>
+							))}
+						</div>
+					) : (
+						<p class="lp-empty">还没有发布任何文章。</p>
+					)
+				}
+			</article>
+
+			<!-- 站点统计 -->
+			<article class="lp-card lp-card--quarter" data-lp-spotlight>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:monitoring-rounded" /></span
+					>
+					<h2 class="lp-card-title">站点统计</h2>
+				</header>
+				<div class="lp-stats">
+					<div>
+						<span class="lp-stat-value" data-lp-count={allPosts.length}
+							>{allPosts.length}</span
+						>
+						<span class="lp-stat-label">文章</span>
+					</div>
+					<div>
+						<span class="lp-stat-value" data-lp-count={tagList.length}
+							>{tagList.length}</span
+						>
+						<span class="lp-stat-label">标签</span>
+					</div>
+					<div>
+						<span class="lp-stat-value" data-lp-count={categoryList.length}
+							>{categoryList.length}</span
+						>
+						<span class="lp-stat-label">分类</span>
+					</div>
+				</div>
+			</article>
+
+			<!-- 实时时钟 -->
+			<article class="lp-card lp-card--quarter" data-lp-spotlight>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:schedule-rounded" /></span
+					>
+					<h2 class="lp-card-title">现在时刻</h2>
+				</header>
+				<div data-lp-clock data-tz={timeZone}>
+					<p class="lp-clock" data-lp-clock-time>--:--:--</p>
+					<p class="lp-clock-meta">
+						<span data-lp-clock-date>----/--/--</span>
+					</p>
+					<p class="lp-greet" data-lp-greet>你好，欢迎回来</p>
+				</div>
+			</article>
+
+			<!-- 快捷入口 -->
+			<article class="lp-card lp-card--quarter" data-lp-spotlight>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:bolt-rounded" /></span
+					>
+					<h2 class="lp-card-title">快捷入口</h2>
+				</header>
+				<div class="lp-quick">
+					{
+						quickLinks.map((link) => (
+							<a class="lp-quick-item" href={url(link.url)}>
+								<span class="lp-quick-glyph">
+									<Icon name={link.icon} />
+								</span>
+								<span>{link.name}</span>
+							</a>
+						))
+					}
+					{
+						profileLinks.map((link) => (
+							<a
+								class="lp-quick-item"
+								href={link.url}
+								target="_blank"
+								rel="nofollow noopener noreferrer"
+							>
+								<span class="lp-quick-glyph">
+									<Icon name={link.icon} />
+								</span>
+								<span>{link.name}</span>
+							</a>
+						))
+					}
+				</div>
+			</article>
+
+			<!-- 分类 · 标签：窄卡里两条短列表比分两行更省高度 -->
+			<article
+				class="lp-card lp-card--quarter lp-card--sm-hide"
+				data-lp-spotlight
+			>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:label-rounded" /></span
+					>
+					<h2 class="lp-card-title">分类 · 标签</h2>
+				</header>
+
+				<div class="lp-tax">
+					{
+						topCategories.length > 0 && (
+							<>
+								<p class="lp-tax-label">分类</p>
+								<div class="lp-tags">
+									{topCategories.map((category) => (
+										<a class="lp-tag lp-tag--cat" href={category.url}>
+											{category.name}
+											<span class="lp-tag-count">{category.count}</span>
+										</a>
+									))}
+								</div>
+							</>
+						)
+					}
+
+					{
+						topTags.length > 0 && (
+							<>
+								<p class="lp-tax-label lp-tax-label--sep">标签</p>
+								<div class="lp-tags">
+									{topTags.map((tag) => (
+										<a
+											class="lp-tag"
+											href={url(`/archive/?tag=${encodeURIComponent(tag.name)}`)}
+										>
+											{tag.name}
+											<span class="lp-tag-count">{tag.count}</span>
+										</a>
+									))}
+								</div>
+							</>
+						)
+					}
+				</div>
+			</article>
+
+			<!-- 碎碎念 -->
+			<article
+				class="lp-card lp-card--quarter lp-card--sm-hide"
+				data-lp-spotlight
+			>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:chat-bubble-rounded" /></span
+					>
+					<h2 class="lp-card-title">碎碎念</h2>
+					{
+						diaryPageAvailable && (
+							<a class="lp-card-sub" href={url("/diary/")}>全部 →</a>
+						)
+					}
+				</header>
+
+				{
+					latestDiary ? (
+						<div class="lp-note">
+							<p class="lp-note-quote">{latestDiary.content}</p>
+							<div class="lp-note-meta">
+								<span>{diaryFormatter.format(new Date(latestDiary.date))}</span>
+								{latestDiary.location && <span>{latestDiary.location}</span>}
+							</div>
+						</div>
+					) : (
+						<p class="lp-empty">还没有日记。</p>
+					)
+				}
+			</article>
+
+			<!-- 关于 -->
+			<article
+				class="lp-card lp-card--quarter lp-card--sm-hide"
+				data-lp-spotlight
+			>
+				<header class="lp-card-head">
+					<span class="lp-card-icon"
+						><Icon name="material-symbols:person-rounded" /></span
+					>
+					<h2 class="lp-card-title">关于本站</h2>
+				</header>
+				<div class="lp-about">
+					<div class="lp-about-avatar">
+						<Image
+							class="lp-about-avatar-img"
+							src={profileConfig.avatar || ""}
+							alt={`${profileConfig.name} 的头像`}
+							loading="lazy"
+						/>
+					</div>
+					<div class="lp-about-text">
+						<p class="lp-about-name">{profileConfig.name}</p>
+						<p class="lp-about-bio">{profileConfig.bio}</p>
+					</div>
+				</div>
+			</article>
+		</div>
+	</div>
+</section>

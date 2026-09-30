@@ -1,12 +1,15 @@
 import I18nKey from "@i18n/i18nKey";
 import { i18n } from "@i18n/translation";
 
+import { HOME_PATH } from "@/constants/constants";
 import { LinkPreset, type NavBarLink } from "@/types/config";
 
 export const LinkPresets: Record<LinkPreset, NavBarLink> = {
 	[LinkPreset.Home]: {
 		name: i18n(I18nKey.home),
-		url: "/",
+		// 首页 = 文章列表 = /home/。站内点「首页」不该重播 5 秒开屏，
+		// 所以这里不指站点根（根是起始页）。见 constants.ts 的 HOME_PATH。
+		url: HOME_PATH,
 		icon: "material-symbols:home",
 	},
 	[LinkPreset.About]: {

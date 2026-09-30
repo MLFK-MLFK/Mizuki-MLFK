@@ -1,0 +1,138 @@
+---
+import { Icon } from "astro-icon/components";
+import Image from "@components/atoms/Image/Image.astro";
+import { announcementConfig, profileConfig, siteConfig } from "@/config";
+import { HOME_PATH } from "@/constants/constants";
+import { url } from "@/utils/url-utils";
+
+/**
+ * 起始页首屏：公告条 + 头像 + 主标题 + 打字机副标题 + 进入按钮
+ *
+ * 标题与副标题都直接取自 src/config.ts 的 banner.homeText，
+ * 公告取自 announcementConfig，想改文案只需改配置，不用动这里。
+ *
+ * 整页锁在一屏内，这里不再有「向下滚动」提示 —— 页面根本没有可滚动的部分。
+ * 竖向尺寸全部走 min(Xvw, Yvh) 的 clamp，窗口矮的时候自己收，不撑破首屏。
+ */
+
+const homeText = siteConfig.banner?.homeText;
+const title = homeText?.title || siteConfig.title;
+const phrases = homeText?.enable ? (homeText.subtitle ?? []) : [];
+
+const typewriter = homeText?.typewriter;
+const speed = typewriter?.speed ?? 100;
+const deleteSpeed = typewriter?.deleteSpeed ?? 50;
+const pause = typewriter?.pauseTime ?? 2000;
+
+// 「进入」指向的是文章列表，不是站点根 —— 根路径就是本页自己，
+// 指过去等于原地打转，还会把 5 秒开屏重播一遍。
+const homeHref = url(HOME_PATH);
+const authorName = profileConfig.name;
+
+// 公告：标题为空时只显示内容；link.enable 为真时整条变成可点链接
+const noticeContent = announcementConfig?.content?.trim() ?? "";
+const noticeTitle = announcementConfig?.title?.trim() ?? "";
+const noticeLink = announcementConfig?.link?.enable ? announcementConfig.link : null;
+const noticeHref = noticeLink
+	? noticeLink.external
+		? noticeLink.url
+		: url(noticeLink.url)
+	: null;
+---
+
+<section class="lp-hero">
+	<div class="lp-hero-inner">
+		{
+			noticeContent &&
+				(noticeHref ? (
+					<a
+						class="lp-notice"
+						href={noticeHref}
+						target={noticeLink?.external ? "_blank" : undefined}
+						rel={noticeLink?.external ? "noopener noreferrer" : undefined}
+					>
+						<span class="lp-notice-tag">{noticeTitle || "公告"}</span>
+						<span class="lp-notice-text">{noticeContent}</span>
+						<Icon name="material-symbols:chevron-right-rounded" />
+					</a>
+				) : (
+					<div class="lp-notice">
+						<span class="lp-notice-tag">{noticeTitle || "公告"}</span>
+						<span class="lp-notice-text">{noticeContent}</span>
+					</div>
+				))
+		}
+
+		<div class="lp-avatar-wrap">
+			<span class="lp-avatar-glow"></span>
+			<span class="lp-avatar-ring"></span>
+			<div class="lp-avatar">
+				<Image
+					class="lp-avatar-img"
+					src={profileConfig.avatar || ""}
+					alt={`${authorName} 的头像`}
+					loading="eager"
+					fetchpriority="high"
+				/>
+			</div>
+		</div>
+
+		<p class="lp-eyebrow">{authorName} · 个人空间</p>
+
+		<h1 class="lp-title">{title}</h1>
+
+		<p class="lp-sub">
+			<span
+				data-lp-type
+				data-phrases={JSON.stringify(phrases)}
+				data-speed={speed}
+				data-delete-speed={deleteSpeed}
+				data-pause={pause}>{phrases[0] ?? ""}</span
+			><span class="lp-caret" aria-hidden="true"></span>
+		</p>
+
+		{/*
+			菱形磨砂玻璃按钮。三层结构（布局盒子 / 玻璃片 / 标签），
+			为什么非要拆开、以及「点击后炸成巨大圆盘」那个 bug 的来龙去脉，
+			都写在 landing.css 的「进入按钮」那一段。
+
+			要点：data-lp-glass 是水波纹的挂载点，也是 JS 换算坐标的基准 ——
+			玻璃片自己转了 45°，指针坐标必须反旋转回它的局部坐标系。
+		*/}
+		<div class="lp-cta" data-lp-cta>
+			<div class="lp-cta-inner" data-lp-cta-inner>
+				<span class="lp-cta-halo" aria-hidden="true"></span>
+				<a
+					class="lp-enter"
+					data-lp-enter
+					data-no-swup
+					href={homeHref}
+					aria-label="进入主页"
+				>
+					<span class="lp-enter-glass" data-lp-glass aria-hidden="true"></span>
+					<span class="lp-enter-label">
+						<span class="lp-enter-text">进入</span>
+						<svg
+							class="lp-enter-arrow"
+							width="18"
+							height="18"
+							viewBox="0 0 24 24"
+							fill="none"
+							stroke="currentColor"
+							stroke-width="2.4"
+							stroke-linecap="round"
+							stroke-linejoin="round"
+							aria-hidden="true"
+						>
+							<path d="M5 12h13M13 6l6 6-6 6"></path>
+						</svg>
+					</span>
+				</a>
+			</div>
+		</div>
+
+		<p class="lp-hint">
+			点击 <strong>进入</strong> 或按 <kbd>Enter</kbd> 前往主页
+		</p>
+	</div>
+</section>

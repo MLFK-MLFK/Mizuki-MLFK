@@ -3,7 +3,8 @@
  * 处理页面过渡过程中的各种钩子事件
  */
 
-import { pathsEqual, url } from "../../utils/url-utils";
+import { HOME_PATH } from "../../constants/constants";
+import { pathsEqual } from "../../utils/url-utils";
 import type { FancyboxHandler } from "../handlers/fancybox-handler";
 import type { ScrollHandler } from "../handlers/scroll-handler";
 import {
@@ -129,7 +130,8 @@ export class SwupHooksManager {
 			this.handlers.cleanupFancybox?.();
 
 			// 处理页面状态
-			const isHomePage = pathsEqual(visit.to.url, url("/"));
+			// 「首页」是文章列表 /home/（根路径已让给起始页，而起始页不参与 swup）
+			const isHomePage = pathsEqual(visit.to.url, HOME_PATH);
 			this.handleBodyClass(isHomePage);
 			this.handleBannerTextVisibility(isHomePage);
 			this.handleNavbarState(isHomePage);
@@ -384,7 +386,7 @@ export class SwupHooksManager {
 	private syncThemeState(): void {
 		const storedTheme =
 			localStorage.getItem(THEME_CONFIG.themeStorageKey) ||
-			THEME_CONFIG.lightMode;
+			THEME_CONFIG.defaultMode;
 		const isDark = storedTheme === THEME_CONFIG.darkMode;
 		const expectedTheme = isDark
 			? THEME_CONFIG.darkExpressiveTheme
