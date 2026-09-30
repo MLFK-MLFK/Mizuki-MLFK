@@ -2,7 +2,7 @@
 
 这一块回答一个问题：**一个 URL 到底对应磁盘上的哪个文件、又是怎么算出来的**。Astro 是「文件即路由」，但本项目在默认规则之外叠了三层东西：`astro.config.mjs` 里的全局路由开关、以 `src/pages/home/[...page].astro` 为代表的分页路由、以及 `permalink` 机制带来的「一篇文章有两个 URL」的兼容设计。
 
-读者最常带着这些问题来：改导航链接、加一个静态页、调分页大小、给某篇文章换 URL、搞不清为什么 `/` 是开屏动画而不是文章列表、发现 `/content/` 点进去 404、或者访问一个不存在的地址时到底发生了什么。下面按「先通用规则、再具体页面、最后速查」的顺序展开。
+读者最常带着这些问题来：改导航链接、加一个静态页、调分页大小、给某篇文章换 URL、搞不清为什么 `/` 是开屏动画而不是文章列表、看见导航栏里有个 `/content/` 却找不到对应页面、或者访问一个不存在的地址时到底发生了什么。下面按「先通用规则、再具体页面、最后速查」的顺序展开。
 
 ---
 
@@ -24,7 +24,7 @@ Astro 把 `src/pages/` 下的文件按固定规则映射成 URL，与文件名�
 
 - **目录层级等于 URL 层级**。想换列表的 URL，换个目录就够了（见 §4）。
 - **凡带 `[` 的路由都必须导出 `getStaticPaths()`**，否则 `output:"static"` 下不会产出任何页面。本项目的动态路由：`src/pages/home/[...page].astro:23`、`src/pages/posts/[...slug].astro:35`、`src/pages/[...permalink].astro:40`、`src/pages/albums/[id]/index.astro:16`、`src/pages/og/[...slug].png.ts:24`。
-- 个别动态页还写了 `export const prerender = true`（`src/pages/og/[...slug].png.ts:22`、`src/pages/devices.astro:12`、`src/pages/friends.astro:13`）。在 `output:"static"` 下所有页面默认就是预渲染的，这个声明是冗余的，写不写都行。
+- 个别动态页还写了 `export const prerender = true`（`src/pages/og/[...slug].png.ts:22`、`src/pages/devices.astro:10`、`src/pages/friends.astro:14`）。在 `output:"static"` 下所有页面默认就是预渲染的，这个声明是冗余的，写不写都行。
 
 加一个普通静态页：在 `src/pages/` 下建 `<名字>.astro`（或 `<名字>/index.astro`），它会自动出现在 `/名字/`；如果它要受 `featurePages` 开关控制，参照 §10 的写法在 frontmatter 顶部加守卫。
 
@@ -333,7 +333,7 @@ Sitemap: <site>/sitemap-index.xml
 ## 11. 新人最容易踩的点（速查）
 
 1. **`/` 不是文章列表**，是开屏动画。文章列表在 `/home/`。任何「首页」判断都用 `HOME_PATH`（`src/constants/constants.ts:14`）。
-2. **`/content/` 不存在**。`src/config.ts:296`（「关于我」）和 `:324`（「关于」）两个导航项的 `url` 都写着 `/content/`，但 `src/pages/` 下没有对应文件，点进去 404。起始页的快捷入口因此会跳过它们（`nav-links.ts:44-63`）。注意这层过滤**只作用于起始页的快捷入口卡片**（`LandingBento.astro:62`、`:73`），导航栏本体不经过 `nav-links.ts` —— `Navbar.astro:32-39` 直接把 `navBarConfig.links` 交给 `DropdownMenu`（`:92-94`）和 `NavMenuPanel`（`:122`），所以导航栏里的坏链接不会被自动清理，得回 `src/config.ts` 手动改。
+2. **`/content/` 没有对应路由，但不会 404**。`src/config.ts:296`（「关于我」）和 `:324`（「关于」）两个导航项的 `url` 都写着 `/content/`，而 `src/pages/` 下没有对应文件 —— 不过这两项**都带 `children`**，带子项的下拉菜单父项在 `DropdownMenu.astro:41-43`（`hasChildren` 分支）和 `NavMenuPanel.astro:62` 渲染成的是 `<button>`，**没有 `href`**；只有无 `children` 的项才落成 `<a href=…>`（`DropdownMenu.astro:101-103`）。按钮不带 URL，用户点不到它，因此不构成死链。真正会被这层过滤刷掉的是起始页的快捷入口卡片（`nav-links.ts:44-63`，且**只**作用于 `LandingBento.astro:62`、`:73`）。导航栏本体不经过 `nav-links.ts` —— `Navbar.astro:32-39` 直接把 `navBarConfig.links` 交给 `DropdownMenu`（`:92-94`）和 `NavMenuPanel`（`:122`）。结论：这是配置里一个没有意义的 `url` 值，不是线上 bug（本页早期版本写成「会 404」，已更正）。
 3. **文章 id 被小写化**（`VRCTool` → `vrctool`），URL 里看不到原始大小写；但 `/albums/<id>/` 保留原始大小写（`/albums/VRChat/`）。
 4. **`[...permalink].astro` 是站根下的通吃路由**。一旦启用 permalink，某篇文章的 permalink 若叫 `about`、`home`、`start`，就会和静态页/其他路由撞车，Astro 构建报 `defined in both`。当前 `permalinkConfig.enable` 是 `false` 且没有文章设 `permalink`，所以该路由生成 0 条路径、暂时无冲突。
 5. **`alias` 在 `/posts/` 下，`permalink` 在站根下**，别混（`src/utils/url-utils.ts:46-62`）。
@@ -349,7 +349,7 @@ Sitemap: <site>/sitemap-index.xml
 ## 12. 待确认（源码与注释/预期不一致处）
 
 - `src/pages/api/allPostMeta.json.ts` 全仓找不到调用方，无法确定它是否仍有用途（外部工具？历史遗留？）。
-- 导航项 `/content/`（`src/config.ts:296`、`:324`）指向不存在的页面，是配置错误还是待新建的页面，未知。
+- 导航项 `/content/`（`src/config.ts:296`、`:324`）指向不存在的路由，但因为两项都带 `children`、渲染成无 `href` 的 `<button>`（见 §11.2），用户点不到，所以**不构成死链**。是配置遗留还是待新建的页面，未知。
 - featurePages 空壳页跳转目标 `/404/` 在 `output:"static"` 下不存在实体目录，仅靠托管商回落；换部署环境需验证。
 - `src/config.ts:41` 注释建议「关闭页面后记得在 navbarConfig 中移除对应链接」，但当前 `navBarConfig`（`src/config.ts:270-362`）里绝大部分已关闭页面的链接是**注释掉**而非删除，而导航栏又没有可达性过滤（见 §11.2），所以展示状态与注释不完全同步。
 

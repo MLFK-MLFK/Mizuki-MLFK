@@ -192,7 +192,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 - **数据源**：读构建产物 `dist/sitemap-0.xml`；文件不存在会直接 `process.exit(1)` 并提示先构建。所以它必须在一次成功构建之后运行。
 - **密钥/环境变量**：`INDEXNOW_KEY`、`INDEXNOW_HOST`（`scripts/indexnow-submit.js:47-49`）。缺失时打印错误并 `return`（`:51-57`，不是崩溃）。key 验证文件约定放在 `https://{host}/{key}.txt`（`:49`）。
 - **提交目标**：`https://api.indexnow.org/IndexNow`（`scripts/indexnow-submit.js:66`），一次最多 10000 个 URL（`:40`）；提交前会按 `INDEXNOW_HOST` 过滤 sitemap URL，所以 host 必须和 `siteConfig.siteURL`（`src/config.ts:29`，当前 `https://mlfk.pages.dev/`）的域名一致。
-- **本仓库现状**：`.env.example:38-40` 给的是占位值 `asdf1213456` / `your.example.com`；`.env` 里两个键都有真实值（密钥，不写进文档）。
+- **本仓库现状**：`.env` 当前与 `.env.example` 一样是占位值（`asdf1213456` / `your.example.com`），并未填入真实密钥，所以 IndexNow 实际不可用。
 - **挂了**：手动跑，失败只影响提交那一次，不影响站点。
 
 ### 3.6 B 站 / Bangumi / 番剧数据
@@ -204,7 +204,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 - **Bangumi**：`scripts/update-bangumi.mjs:5` 的 `API_BASE = "https://api.bgm.tv"`，读 `bangumi.userId`（`src/config.ts:72`，当前是占位值 `your-bangumi-id`），产出 `src/data/bangumi-data.json`（`:12`）。
 - **Bilibili**：`scripts/update-bilibili.mjs:9` 的 `API_BASE = "https://api.bilibili.com/x/space/bangumi/follow/list"`，读 `bilibili.vmid`（`src/config.ts:77`，当前是真实 UID `308857431`），产出 `src/data/bilibili-data.json`（`:17`）。
   - **密钥**：观看进度需要 `SESSDATA`。脚本从环境变量 `BILI_SESSDATA` 读取（`scripts/update-bilibili.mjs:66`），并放进请求 cookie（`:135`）。`src/config.ts:85` 的注释明确要求**只走 `.env` 或 GitHub Secret，绝不硬编码**，并附了凭证泄露后的吊销步骤。CI 的 build job 通过 `secrets.BILI_SESSDATA` 注入（`.github/workflows/CI.yml:67`）。
-- **两处 `.json` 都被 `.gitignore`**（`.gitignore:49`、`:52`），当前也不存在。缺文件时 `loadAnimeData` 只 `console.warn` 并返回空数组（`src/utils/anime-data.ts:49-50`），不报错。
+- **两处 `.json` 都被 `.gitignore`**（`.gitignore:51`、`:54`），当前也不存在。缺文件时 `loadAnimeData` 只 `console.warn` 并返回空数组（`src/utils/anime-data.ts:49-50`），不报错。
 - **dev 下的额外规则（易误读）**：`src/utils/anime-data.ts:82-93` 给 `bilibili` 和 `bangumi` 都写死了 `fetchOnDev: undefined`，`:109` 的 `currentConfig.fetchOnDev ?? false` 恒为 false，所以 **dev 下两种 json 数据一律跳过加载**。`src/config.ts:73` / `:78` 里那两个 `fetchOnDev` 从未被 `src` 读取，是死配置——即便把 `mode` 改成 `bilibili`，也不会因为它触发 dev 拉取。
 - **挂了**：`mode: "local"` 下 B 站/Bangumi 全挂也不影响构建与番剧页——页面读 `src/data/anime.ts` 的硬编码列表。
 
@@ -414,8 +414,8 @@ exclude_selectors:
 9. **默认在线的第三方不止一个**：统计类只有 GTM 默认在线，但 Iconify（`code.iconify.design` / `api.iconify.design`）也在默认在线之列——`.svelte` 岛屿和 `<iconify-icon>` 都会联网。说「唯一默认在线」时指的是统计类。
 10. **图标分两套**：`.astro` 走构建期内联（吃 `@iconify-json/*`），`.svelte` 走运行时 CDN（吃 Iconify API）。装包只影响前者，后者离线会空图标。
 11. **`compress-fonts.js` 必须在 `astro build` 之后**：它读的是 `dist/`，不是 `src/`；单独跑只会在没有 `dist/` 时提示先构建。
-12. **`.env` 里只有那六个键**：`ENABLE_CONTENT_SYNC`、`CONTENT_REPO_URL`、`CONTENT_DIR`、`INDEXNOW_KEY`、`INDEXNOW_HOST`、`BILI_SESSDATA`。其余服务（Sentry 的 `PUBLIC_SENTRY_DSN`、Umami）各走各的入口，别指望在 `.env` 里找。`.env` 被 `.gitignore:19` 忽略，`.env.example` 给的是占位值。
-13. **`content/` 是另一个 Git 仓库的克隆**：被 `.gitignore:23` 忽略，由 `prebuild` 的 `sync-content.js` 拉取。见第 1 条。
+12. **`.env` 里只有那六个键**：`ENABLE_CONTENT_SYNC`、`CONTENT_REPO_URL`、`CONTENT_DIR`、`INDEXNOW_KEY`、`INDEXNOW_HOST`、`BILI_SESSDATA`。其余服务（Sentry 的 `PUBLIC_SENTRY_DSN`、Umami）各走各的入口，别指望在 `.env` 里找。`.env` 被 `.gitignore:21` 忽略，`.env.example` 给的是占位值。
+13. **`content/` 是另一个 Git 仓库的克隆**：被 `.gitignore:25` 忽略，由 `prebuild` 的 `sync-content.js` 拉取。见第 1 条。
 
 ---
 

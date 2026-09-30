@@ -25,7 +25,7 @@
 - 首页常量定义：`src/constants/constants.ts:14`（`export const HOME_PATH = "/home/";`，注释解释得很清楚）
 - 起始页：`src/pages/index.astro:12-34` 的注释与实现（`<main id="swup-container">` 在 `:65-77`）
 - 文章列表：`src/pages/home/[...page].astro:13-19` 的注释
-- 旧的 `src/pages/[...page].astro` 已删除（`git status` 显示为 `D`）
+- 旧的 `src/pages/[...page].astro` 已删除（在 37a868d 提交中随首页重构删除）
 - 老书签 `/start/` 由 `astro.config.mjs:50-52` 的 `redirects` 兜到 `/`
 
 ---
@@ -50,7 +50,7 @@
 - `src/pages/posts/[...slug].astro` —— 默认的文章详情页，`getStaticPaths()` 遍历 `getSortedPosts()`（`:35-46`）为每篇文章建 `/posts/<slug>/`。
 - `src/pages/[...permalink].astro` —— 处理固定链接的页面，按 `permalinkConfig`（全局）或文章 frontmatter 的 `permalink`（单篇）在根目录下生成 `<permalink>/`（`:40-75`）。
 
-两者关系写在 `posts/[...slug].astro:50-92` 的注释里：即使文章配了自定义 permalink 或全局 permalink 开启，`/posts/<slug>/` 的默认路径**仍然会保留**以兼容旧链接，同时再由 `[...permalink].astro` 生成新路径。全局 permalink 开关在 `src/config.ts:393-416`（当前 `enable: false`，格式模板 `format: "%postname%"`）。文章的 `alias` 字段也会走 `posts/[...slug].astro:78-91` 生成别名路径。
+两者关系写在 `posts/[...slug].astro:50-92` 的注释里：即使文章配了自定义 permalink 或全局 permalink 开启，`/posts/<slug>/` 的默认路径**仍然会保留**以兼容旧链接，同时再由 `[...permalink].astro` 生成新路径。全局 permalink 开关在 `src/config.ts:393-418`（当前 `enable: false`，格式模板 `format: "%postname%"`）。文章的 `alias` 字段也会走 `posts/[...slug].astro:78-91` 生成别名路径。
 
 ---
 
@@ -60,7 +60,7 @@
 
 - `package.json:24` 的 `preinstall` 是 `npx only-allow pnpm` —— 用 npm/yarn 装依赖会在安装前直接报错退出。
 - `package.json:111` 锁定 `"packageManager": "pnpm@10.33.0"`。
-- 仓库里只提交了 `pnpm-lock.yaml`；`.gitignore:34-36` 明确忽略了 `package-lock.json`、`yarn.lock`、`bun.lockb`。
+- 仓库里只提交了 `pnpm-lock.yaml`；`.gitignore:36-38` 明确忽略了 `package-lock.json`、`yarn.lock`、`bun.lockb`。
 
 Node 版本要求 `>= 22`（`README.md:12` 徽章），CI 测试矩阵用 22 与 23（`.github/workflows/build.yml:20` 的 `matrix.node`）。
 
@@ -77,7 +77,7 @@ npx astro dev       # 安全，见第 4 节为什么不用 pnpm dev
 
 ## 4. 命令表（含危险性）
 
-### 4.1 危险命令：`pnpm dev` / `pnpm build`（以及对应的 `npm run dev|build`）
+### 4.1 危险命令：`pnpm dev` / `pnpm build` / `pnpm sync-content` / `pnpm init-content`（以及对应的 `npm run …`）
 
 `package.json:8-9` 定义了 `predev` 与 `prebuild`，两者都执行 `node scripts/sync-content.js || true`。而 `scripts/sync-content.js` 的**结尾会 `git add .` 加 `git commit`**：
 
@@ -92,10 +92,22 @@ execSync(
 
 后果：只要工作区里有任何未提交的改动（改了一半的组件、临时文件、刚写的笔记），跑一次 `pnpm dev` 或 `pnpm build` 就可能被一并提交，提交信息是 `chore(content): sync <branch>@<hash>`。`|| true` 只保证脚本失败时不阻断 dev/build，但拦不住这次提交。
 
+**别以为只有这两条**。同一个脚本还能从另外两个入口被触发：
+
+| 命令 | 定义在 | 为什么危险 |
+| --- | --- | --- |
+| `pnpm sync-content` | `package.json:6` | 直接就是 `node scripts/sync-content.js`，等价于 `prebuild` 的副作用，单跑一次照样 `git add .` + `git commit` |
+| `pnpm init-content` | `package.json:7` | 跑 `scripts/init-content-repo.js`，它**先把根目录 `.env` 整份覆盖**成只含 `CONTENT_REPO_URL` 和 `CONTENT_DIR` 两行的新文件（`scripts/init-content-repo.js:78`），紧接着在 `:84` 调 `pnpm run sync-content` —— 也就是覆盖 `.env` **之后**再自动提交。本机 `.env` 里有 6 个键，`INDEXNOW_KEY`、`INDEXNOW_HOST`、`BILI_SESSDATA` 会被静默抹掉 |
+
+> **顺带提醒**：仓库根目录那份 `README.md` 的 Quick Start 抄不得。
+> `README.md:138`、`:247`、`:305` 教的是 `pnpm dev`（`:248` 是 `pnpm build`），`README.md:316` 教的是 `pnpm run sync-content` —— 全部命中上面这个坑。
+> 新人接手时第一反应就是照抄根 README，而它恰好是唯一一份没被标记风险、又摆在最显眼位置的文档。
+
 ### 4.2 安全替代命令
 
 | 命令 | 作用 | 说明 |
 | --- | --- | --- |
+| `pnpm start` | 启动开发服务器 | **安全**。`package.json:11` 的 `start` 就是 `astro dev`，`scripts` 段里没有 `prestart`，不会走到 `sync-content.js` |
 | `npx astro dev` | 启动开发服务器 | 绕过 `predev`，不触发内容同步与提交 |
 | `npx astro build` | 构建到 `dist/` | 绕过 `prebuild`；但**跳过了** `pnpm build` 里的番剧更新 / pagefind / 字体压缩 |
 | `npx astro check` | Astro + TS 类型检查 | 等价于 `pnpm check`（`package.json:12`），CI 用它做门禁 |
@@ -124,7 +136,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 这两件事都不是 bug，是构建期与运行期的边界：
 
 - **搜索面板在 dev 下没有结果**：搜索索引是 `pagefind --site dist` 在构建后写进 `dist/` 的（`package.json:16`），`npx astro dev` 不产出它。要试搜索得先 `npx astro build` 再 `npx astro preview`。
-- **自定义字体在 dev 下不生效**：`src/config.ts:216` 的注释写明「字体子集优化功能目前仅支持 TTF 格式字体，开启后需要在生产环境才能看到效果，在 Dev 环境下显示的是浏览器默认字体」。同理，番剧 / B 站数据要先构建出 json 文件（`src/config.ts:71-74` 的 `bangumi`、`:76-87` 的 `bilibili`，数据文件被 `.gitignore:49`、`:52` 忽略）。
+- **自定义字体在 dev 下不生效**：`src/config.ts:216` 的注释写明「字体子集优化功能目前仅支持 TTF 格式字体，开启后需要在生产环境才能看到效果，在 Dev 环境下显示的是浏览器默认字体」。同理，番剧 / B 站数据要先构建出 json 文件（`src/config.ts:71-74` 的 `bangumi`、`:76-87` 的 `bilibili`，数据文件被 `.gitignore:51`、`:54` 忽略）。
 
 ---
 
@@ -229,7 +241,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 | `INDEXNOW_KEY` / `INDEXNOW_HOST` | — | SEO 主动提交 | `.env.example:38-40` |
 | `BILI_SESSDATA` | — | 拉 B 站观看进度 | `.env.example:54` |
 
-`.env` 本身被 `.gitignore:19` 忽略，仓库里只提交 `.env.example`；本地这两个文件目前内容完全一致。
+`.env` 本身被 `.gitignore:21` 忽略，仓库里只提交 `.env.example`；本地这两个文件目前内容完全一致。
 
 ### 7.1 默认值反直觉：不是 `"false"` 就算启用
 
@@ -276,7 +288,7 @@ const ENABLE_CONTENT_SYNC = process.env.ENABLE_CONTENT_SYNC !== "false"; // 默�
 
 - 产物目录：`dist/`。`astro.config.mjs:43` 声明 `output: "static"`，构建即产出静态文件到 `dist/`；`pagefind` 再往 `dist/` 写搜索索引。
 - `.gitignore:2` 忽略 `dist/`。
-- 其他被忽略的关键项：`.astro/`（Astro 生成的类型，`.gitignore:5`）、`node_modules/`（`:10`）、`.env` 与 `.env.production`（`:19-20`）、整个 `/content/` 内容仓库克隆（`:23`）、`*.backup`（`:24`）、`package-lock.json`/`yarn.lock`/`bun.lockb`（`:34-36`）、`.claude` 与 `.idea`（`:38-41`）、生成的数据文件如 `src/data/bangumi-data.json`（`:49`）与 `src/data/bilibili-data.json`（`:52`）。
+- 其他被忽略的关键项：`.astro/`（Astro 生成的类型，`.gitignore:7`）、`node_modules/`（`:12`）、`.env` 与 `.env.production`（`:21-22`）、整个 `/content/` 内容仓库克隆（`:25`）、`*.backup`（`:26`）、`package-lock.json`/`yarn.lock`/`bun.lockb`（`:36-38`）、`.claude` 与 `.idea`（`:41` 与 `:43`）、生成的数据文件如 `src/data/bangumi-data.json`（`:51`）与 `src/data/bilibili-data.json`（`:54`）。
 
 所以「能提交的」是源码、配置、`src/content/` 里的文章与 `public/` 资源；「不该提交的」是构建产物、依赖、密钥环境变量和独立内容仓库。
 
@@ -304,8 +316,8 @@ const ENABLE_CONTENT_SYNC = process.env.ENABLE_CONTENT_SYNC !== "false"; // 默�
 3. **`ENABLE_CONTENT_SYNC` 缺省即启用**（`scripts/sync-content.js:15`）。想关必须显式写 `false`。
 4. **`npx astro build` ≠ `pnpm build`**：前者跳过了番剧数据更新、pagefind 搜索索引和字体子集（`package.json:16`）。
 5. **dev 下搜索没结果、字体也不对**是正常的：搜索索引与字体子集都只在构建产物里生效（第 4.4 节）。
-6. **根目录 `content/` 是另一个 git 仓库且是整仓克隆**（`.gitignore:23`），同步脚本会对它 `git reset --hard`（`scripts/sync-content.js:84`）。
-7. **导航栏里有指向不存在页面的链接**：`/content/`（`src/config.ts:296`、`src/config.ts:324`）本站没有对应路由。
+6. **根目录 `content/` 是另一个 git 仓库且是整仓克隆**（`.gitignore:25`），同步脚本会对它 `git reset --hard`（`scripts/sync-content.js:84`）。
+7. **导航栏里的 `/content/` 不会 404，别去「修」它**：`src/config.ts:296`（「关于我」）和 `:324`（「关于」）的 `url` 确实写着 `/content/`，而 `src/pages/` 下没有这个路由 —— 但这两项**都带 `children`**，带子项的下拉菜单父项在 [DropdownMenu.astro:41-43](src/components/organisms/navigation/DropdownMenu.astro#L41-L43) 和 [NavMenuPanel.astro:62](src/components/organisms/navigation/NavMenuPanel.astro#L62) 里渲染成的是 `<button>`（无 `href`），只有不带 `children` 的项才落成 `<a>`（`DropdownMenu.astro:101-103`）。按钮不带 URL，用户点不到，所以**不构成死链**。真正被跳过的是起始页的快捷入口卡片（`nav-links.ts:44-63`）。
 8. **侧栏组件受 `sidebarLayoutConfig.components` 控制**，不是每个组件自己的开关（`src/config.ts:586-596`）。
 9. **看板娘 / 樱花的注释与值相反**：`src/config.ts:651` 注释写「禁用看板娘以提升性能」，值是 `enable: true`；`src/config.ts:623` 注释写「默认关闭樱花特效」，值也是 `enable: true`。以代码为准。（音乐播放器 `src/config.ts:468` 的注释与值是一致的 `true`，不存在这个矛盾。）
 

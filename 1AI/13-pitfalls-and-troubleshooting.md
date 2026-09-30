@@ -31,12 +31,26 @@ execSync(`git commit -m "chore(content): sync ${branch}@${hash}"`, { cwd: rootDi
 会在你毫无察觉的情况下，把工作区里所有未提交的改动 `git add .` 之后提交掉。**
 提交信息长得像一次正常的内容同步，回头看 `git log` 很难分辨。
 
-这段代码包在 `try/catch` 里（`scripts/sync-content.js:155-165`），失败时只打印
+**入口不止这两个。** 同一个脚本还能从另外两处被叫起来，而它们都不带
+`predev`/`prebuild` 那种「看起来就危险」的暗示：
+
+| 入口 | 定义在 | 后果 |
+| --- | --- | --- |
+| `pnpm sync-content` | `package.json:6` | 直接 `node scripts/sync-content.js`，单跑一次就等价于 `prebuild` 的副作用 |
+| `pnpm init-content` | `package.json:7` | 跑 `scripts/init-content-repo.js`：**先整份覆盖根目录 `.env`**（`:78` 只写回 `CONTENT_REPO_URL` 与 `CONTENT_DIR` 两行），紧接着 `:84` 调 `pnpm run sync-content`。本机 `.env` 有 6 个键，`INDEXNOW_KEY`、`INDEXNOW_HOST`、`BILI_SESSDATA` 会被静默抹掉，然后连带做一次自动提交 |
+
+> ⚠️ **最容易被照抄的那份文档，恰恰没被标记风险。**
+> 仓库根目录的 `README.md` 里，`README.md:138`、`:247` 和 `:305` 教的启动命令是 `pnpm dev`
+> （`:248` 是 `pnpm build`），`README.md:316` 教的是 `pnpm run sync-content` —— 全部命中上面这个坑。
+> 新人接手第一件事就是打开根 README 复制粘贴，请先看本节再动手。
+
+这段代码包在 `try/catch` 里（`scripts/sync-content.js:141-167`，try 起于 141 行、
+catch 在 165 行），失败时只打印
 「没有变化，跳过提交」，所以**没有任何红色报错会提醒你**。
 
 ### 实测结论（不是推测）
 
-pnpm 11.9.0 默认执行 `pre`/`post` 钩子 —— 用一份临时 `package.json` 实测过，
+pnpm 10.33.0 默认执行 `pre`/`post` 钩子 —— 用一份临时 `package.json` 实测过，
 `pnpm foo` 会先跑 `prefoo`。所以「pnpm 7 以后不跑 pre 钩子了」这个说法在这里不成立，
 `predev` / `prebuild` 是真会执行的。
 
@@ -98,8 +112,8 @@ node scripts/compress-fonts.js
    | `content/data` | `src/data` |
    | `content/images` | `public/images` |
 
-   落点上如果已经存在真实目录，会先改名成 `.backup`（`.gitignore:24` 忽略了 `*.backup`），
-   再建 Windows 目录联接（junction），失败则退化成递归复制（第 111-136 行）。
+   落点上如果已经存在真实目录，会先改名成 `.backup`（`.gitignore:26` 忽略了 `*.backup`），
+   再建 Windows 目录联接（junction），失败则退化成递归复制（第 112-137 行）。
 
 ### 当前实际状态（重要）
 
@@ -118,7 +132,7 @@ node scripts/compress-fonts.js
    `data/`、`images/` 四个目录；
 2. 第一次跑会把现有的 `src/content/posts` 等改名成 `*.backup`。确认内容已经从新仓库同步好了再删备份。
 
-另外，`content/` 整个目录被 `.gitignore:23` 忽略，它是本机的一个克隆产物，
+另外，`content/` 整个目录被 `.gitignore:25` 忽略，它是本机的一个克隆产物，
 **不要**把它当成项目的一部分去改 —— 下次同步 `git reset --hard` 会全部抹掉。
 
 ---
@@ -159,8 +173,9 @@ export const HOME_PATH = "/home/";
 
 ### 两个已经踩过的漏网之鱼
 
-重构时用 grep 搜 `url("/")` / `href="/"` 是搜不干净的 —— 下面两处写的是**裸字符串** `"/"`，
-会在重构里被漏掉：
+重构时用 grep 搜 `url("/")` / `href="/"` 是搜不干净的 —— 下面两处当初写死了首页地址
+（BackToHome 的 `homeUrl: "/"`；pio.js 的 `"/home/"` 副本是 37a868d 才补上的），
+在重构里被漏掉了（现在 `grep url("/")` / `href="/"` 都已经搜不到）：
 
 1. `src/components/control/BackToHome.astro` —— 浮动「返回首页」按钮。它的显隐逻辑是
    「当前路径 ≠ homePath 就显示」，`homeUrl` 若还是 `"/"`，站在 `/home/` 上按钮也不肯隐藏，
@@ -329,8 +344,8 @@ const listBase = page.url.first ?? page.url.current;
 
 ### 分页页也属于「首页的延续」
 
-`/home/2/` 不该被当成普通内页。`CategoryBar.astro` 和 `useMobileTOC.ts:134-135`
-都用正则匹配 `^/home/\d+/?$` 来把分页页归入首页。加新的「首页判定」时别忘了这一条。
+`/home/2/` 不该被当成普通内页。`CategoryBar.astro` 用 `^/home/\d+$`（匹配前已去尾斜杠），
+`useMobileTOC.ts:135` 用 `^/home/\d+/?$`，都是把分页页归入首页。加新的「首页判定」时别忘了这一条。
 
 ---
 
@@ -411,13 +426,22 @@ Pagefind 是构建后处理 `dist/` 生成索引的，配置在 `pagefind.yml`�
 远端只有 `master`（`origin/HEAD -> origin/master`）。所以 `build.yml` 永远不触发。
 `deploy.yml` 本来也跑不了 —— 除了分支名，YAML 本身还是坏的。
 
-### 3. 导航栏两个入口指向不存在的页面
+### 3. 导航栏两个 `/content/` —— 看着像死链，其实点不到
 
 `src/config.ts:296` 和 `src/config.ts:324` 的下拉菜单父项 `url` 都写着 `"/content/"`，
-但项目里**没有 `src/pages/content/` 这个路由**，线上会 404。
+而项目里**没有 `src/pages/content/` 这个路由**。
 
-（这两项是下拉菜单的父节点，本身不该可点 —— 正确做法通常是把父项 URL 指到它第一个子项，
-或者让父项不可点击。改之前先确认设计意图。）
+**但它不会 404。** 这两项都带 `children`，而带子项的下拉菜单父项：
+- 桌面端 `DropdownMenu.astro:41-43` 的 `hasChildren` 分支渲染成 `<button>`，**没有 `href`**；
+  只有 `DropdownMenu.astro:101-103` 的 else 分支（无 `children` 的项）才是 `<a href=…>`。
+- 移动端 `NavMenuPanel.astro:62` / `:114` 是同一套分支。
+
+按钮不带 URL，用户点不到 `/content/`。真正会被这层过滤刷掉的是**起始页的快捷入口卡片**
+（`nav-links.ts:44-63`，只作用于 `LandingBento.astro:62`、`:73`）。
+
+所以这不是线上 bug，只是配置里留了个没有意义的 `url` 值。
+（`04-routing-and-pages.md` 和 `00-quickstart.md` 早期版本把这里写成「会 404」，
+已于本次核实中更正。）
 
 ### 4. `content/` 目录的克隆源指向代码仓库自己
 
@@ -434,7 +458,7 @@ Pagefind 是构建后处理 `dist/` 生成索引的，配置在 `pagefind.yml`�
 - **Windows + bash（Git Bash）**。路径用正斜杠，`/tmp` 存在但实际是 `%TEMP%` 的映射。
 - **没有装 Python**。执行 `python` 会报 `Python was not found`（退出码 49）。
   处理 JSON 用 `node -e '...'`，本机 Node 是 v24。
-- **包管理器是 pnpm 11**，`pnpm install` 里有 `only-allow pnpm` 守卫。
+- **包管理器是 pnpm 10.33.0**，`pnpm install` 里有 `only-allow pnpm` 守卫。
 
 ### 无头浏览器实测（没有 Playwright 模块）
 

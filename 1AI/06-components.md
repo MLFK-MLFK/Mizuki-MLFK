@@ -115,7 +115,7 @@ export * from "./types";
 ### 4.1 Props 约定
 
 - Astro → Astro：标准 `Astro.props`，默认值写在解构里（`src/components/atoms/Button/Button.astro:5-9`）。
-- Astro → Svelte：Astro 端把服务端算好的数据当 props 传下去，Svelte 端用 `$props()` 接。典型：`src/components/widgets/calendar/Calendar.astro:15-41` 在构建期用 `i18n()` 算好 12 个月名、7 个星期名、年后缀，再通过 `client:visible` 传给 `src/components/widgets/calendar/Calendar.svelte:31-37`。**Svelte 组件不直接 import i18n**，靠 props 注入。
+- Astro → Svelte：Astro 端把服务端算好的数据当 props 传下去，Svelte 端用 `$props()` 接。典型：`src/components/widgets/calendar/Calendar.astro:15-41` 在构建期用 `i18n()` 算好 12 个月名、7 个星期名、年后缀，再通过 `client:visible` 传给 `src/components/widgets/calendar/Calendar.svelte:31-37`。Calendar.svelte 走 props 注入只是这一处的样板；仓库里多数 Svelte 组件其实直接 `import { i18n } from "@i18n/translation"`（如 `src/components/control/LayoutSwitch.svelte:3`、`src/components/features/archive/ArchivePanel.svelte:3`、`src/components/organisms/navigation/Search.svelte:3`）。
 - 回调也是 props：Svelte 里把函数当普通 prop 传，用简写 `{onclick}`（`src/components/widgets/music-player/atoms/PlayButton.svelte:4-18`），命名统一用 `onXxx`（`src/components/widgets/music-player/organisms/MiniPlayer.svelte:12-29` 一口气接了 `onCoverClick`/`onInfoClick`/`onHideClick`/`onExpandClick`）。
 
 ### 4.2 Slot
@@ -147,7 +147,7 @@ Astro 的 slot 用得很克制，全仓库只有 7 个组件用了 `<slot`：
 
 - `export let` 定义 props：5 个文件——`src/components/control/LayoutSwitch.svelte`、`src/components/features/archive/ArchivePanel.svelte`、`src/components/features/pio/Pio.svelte`、`src/components/features/settings/DisplaySettings.svelte`、`src/components/misc/SharePoster.svelte`。
 - `$:` 响应式：3 个文件——`LayoutSwitch.svelte`、`src/components/control/MusicFabButton.svelte`、`DisplaySettings.svelte`。
-- `on:` 绑事件：全仓库仅 4 处——`src/components/control/LayoutSwitch.svelte:175`、`src/components/control/MusicFabButton.svelte:42`、`src/components/features/settings/DisplaySettings.svelte:48`、`src/components/widgets/music-player/MusicPlayer.svelte:199`。
+- `on:` 绑事件：全仓库仅 5 处——`src/components/control/LayoutSwitch.svelte:175`（`on:click`）、`src/components/control/LayoutSwitch.svelte:183`（`on:animationend`）、`src/components/control/MusicFabButton.svelte:42`、`src/components/features/settings/DisplaySettings.svelte:48`、`src/components/widgets/music-player/MusicPlayer.svelte:199`。
 
 并集是 7 个文件。注意 `MusicFabButton.svelte` **没有** `export let`（它只有 `let state` + `$:`，属另一种遗留），别把它算进 export let 那一类。
 
@@ -158,7 +158,7 @@ Astro 的 slot 用得很克制，全仓库只有 7 个组件用了 `<slot`：
 两条消费路径并存，要分清楚：
 
 - `MusicPlayer.svelte` / `MusicFabButton.svelte` 走 **类订阅**：`musicPlayerStore.subscribe(...)` 放在 `onMount` 里（`src/components/widgets/music-player/MusicPlayer.svelte:184-189`），状态存进普通变量、靠 Svelte 重新渲染。因此这些组件里**没有 `$state`**。
-- `SidebarMusicClient.svelte` 走 **window 事件**：`let state = $state(...)`（`src/components/widgets/music-sidebar/SidebarMusicClient.svelte:14`），在 `onMount` 里 `window.addEventListener("music-sidebar:state", ...)`（`:25`）。但注意它**不是纯事件消费**——同一文件还直接 import 并对 store 调 `getState()`/`toggle()`（`:7`、`:14`、`:33`）。广播方在 `src/stores/musicPlayerStore.ts:565-580` 的 `broadcastState()`。
+- `SidebarMusicClient.svelte` 走 **window 事件**：`let state = $state(...)`（`src/components/widgets/music-sidebar/SidebarMusicClient.svelte:14`），在 `onMount` 里 `window.addEventListener("music-sidebar:state", ...)`（`:25`）。但注意它**不是纯事件消费**——同一文件还直接 import 并对 store 调 `getState()`/`toggle()`（`:5`、`:14`、`:38`）。广播方在 `src/stores/musicPlayerStore.ts:565-580` 的 `broadcastState()`。
 
 **另外 `src/components/widgets/music-player/hooks/*.ts`（`useAudioPlayer` / `usePlayerState` / `useVolumeControl` / `useKeyboardShortcuts` / `usePlaylist`）是死代码**：除 `useVolumeControl.ts:2` 引用了 `useAudioPlayer` 的**类型**外，全仓库没有一处 import 它们。状态早已搬到 `src/stores/musicPlayerStore.ts`。
 
@@ -222,7 +222,7 @@ TOC 是历史包袱最重的一块，新人必须知道「同一件事有好几�
 ### 7.1 配置侧
 
 - `src/config.ts:493` 的 `sidebarLayoutConfig` 是总入口：`properties`（`:495` 起）逐项声明每个组件的 `position`（`top`/`sticky`）、动画延迟、响应式折叠；`components.left` / `components.right` / `components.drawer`（`:586-596`）分别给出左栏、右栏、抽屉要装哪些组件、按什么顺序。
-- `src/types/config.ts:368-380` 定义 `WidgetComponentType` 联合类型（`profile`/`announcement`/`categories`/`tags`/`toc`/`card-toc`/`music-player`/`music-sidebar`/`pio`/`site-stats`/`calendar`/`custom`）；`:381-392` 定义 `WidgetComponentConfig`；`:392` 的 `customProps` 用来给组件塞额外 props。
+- `src/types/config.ts:368-380` 定义 `WidgetComponentType` 联合类型（`profile`/`announcement`/`categories`/`tags`/`toc`/`card-toc`/`music-player`/`music-sidebar`/`pio`/`site-stats`/`calendar`/`custom`）；`:382-393` 定义 `WidgetComponentConfig`；`:392` 的 `customProps` 用来给组件塞额外 props。
 
 ### 7.2 运行时选择逻辑：`widget-manager.ts` 里活的是哪些方法
 
@@ -251,9 +251,9 @@ TOC 是历史包袱最重的一块，新人必须知道「同一件事有好几�
 
 它只处理左栏在浏览器里的**响应式显隐**，是注册 `componentMap` 之外的运行时行为：
 
-- 构造时 `updateResponsiveDisplay()`（`:107-153`）按 `window.innerWidth` 与断点把 `--sidebar-{device}-display` 设成 `block`/`none`；
+- 构造时 `updateResponsiveDisplay()`（`:139-169`）按 `window.innerWidth` 与断点把 `--sidebar-{device}-display` 设成 `block`/`none`；
 - 监听 `resize` 重算；
-- 挂 swup 的 `content:replace`（`:118-121`，延迟 100ms 重算）——因为 swup 换页后 `<main>` 被替换，显隐状态要重新施加。
+- 挂 swup 的 `content:replace`（`:104-135`，`setTimeout(..., 100)` 在 `:134`）——因为 swup 换页后 `<main>` 被替换，显隐状态要重新施加。
 - 用 `__mizukiSidebarManagerInitialized` 全局标志（`:80`、`:169-175`）防重复初始化。
 
 `src/components/widgets/sidebar/index.ts` 只有一行导出，也是薄壳。
@@ -283,8 +283,8 @@ TOC 是历史包袱最重的一块，新人必须知道「同一件事有好几�
 
 - **入口是 `index.astro`，不是 `index.ts`。** 四个页面直接 `import Comment from "@components/comment/index.astro"`：`src/pages/about.astro:2`、`src/pages/friends.astro:2`、`src/pages/posts/[...slug].astro:4`、`src/pages/[...permalink].astro:10`。这个命名反常（`index.astro` 同时充当目录入口和聚合组件），但这就是现状。
 - `src/components/comment/index.astro:10-31` 在构建期决定用哪家：先看 `commentConfig.enable`，再看 `commentConfig.system`（`twikoo`/`giscus`，缺省时回退到 `twikoo`），最后叠加单篇文章的 `post.data.comment`（默认 `true`）。`:34-42` 据此只渲染 Twikoo 或 Giscus 之一。
-- `commentConfig` 定义在 `src/config.ts:428`（`enable`、`system`、`twikoo.envId`、`giscus` 各字段），对应类型在 `src/types/config.ts:282-301`。
-- `Giscus.astro:16` 与 `Twikoo.astro:16` 都用 `is:inline` + `define:vars` 把配置传给内联脚本，并用 `IntersectionObserver`（`rootMargin` 200px）懒加载：Giscus 注入 `https://giscus.app/client.js`，Twikoo 注入本地 `/assets/js/twikoo.all.min.js`。两者都挂了 swup 的 `content:replace` 重初始化，Giscus 还额外用 `MutationObserver` 跟主题明暗同步。
+- `commentConfig` 定义在 `src/config.ts:428`（`enable`、`system`、`twikoo.envId`、`giscus` 各字段），对应类型在 `src/types/config.ts:279-305`。
+- `Giscus.astro:16` 与 `Twikoo.astro:19` 都用 `is:inline` + `define:vars` 把配置传给内联脚本，并用 `IntersectionObserver`（`rootMargin` 200px）懒加载：Giscus 注入 `https://giscus.app/client.js`，Twikoo 注入本地 `/assets/js/twikoo.all.min.js`。两者都挂了 swup 的 `content:replace` 重初始化，Giscus 还额外用 `MutationObserver` 跟主题明暗同步。
 - `src/components/comment/index.ts:1-2` 把 `index.astro` 导出成 `CommentIndex`、把 `Twikoo.astro` 导出成 `Twikoo`——但**没有任何消费者用它**，页面一律深链 `index.astro`。这与第二节「单组件 barrel 基本无人用」是同一个现象。
 
 ## 九、构建配置与样式边界
@@ -298,8 +298,8 @@ TOC 是历史包袱最重的一块，新人必须知道「同一件事有好几�
 | `swup(...)` | `:60-107` | 跨页换页，组件必须处理生命周期事件（4.3 节）；起始页 `/` 与 `#lp-root` 被 `ignore` 排除在 swup 之外 |
 | `icon()` | `:108` | `astro-icon` 让 `.astro` 能用 `import { Icon } from "astro-icon/components"` |
 | `svelte({ preprocess: vitePreprocess() })` | `:156-158` | 让 `.svelte` 组件参与构建，是 `client:*` 水合的前提 |
-| `expressiveCode` / `mdx` / `sitemap` / `sentry` / `spotlightjs` / `oddmisc` | `:109-162` | 分别提供代码块、MDX、站点地图、错误上报、主题壳等能力 |
-| `tailwindcss()`（vite 插件） | `:224` | 组件里大量 Tailwind 原子类（`card-base`、`gap-4` 等）来自这里 |
+| `expressiveCode` / `mdx` / `sitemap` / `sentry` / `spotlightjs` | `:109-162`（`oddmisc` 见 `:55-59`） | 分别提供代码块、MDX、站点地图、错误上报、主题壳等能力 |
+| `tailwindcss()`（vite 插件） | `:222` | 组件里大量 Tailwind 原子类（`card-base`、`gap-4` 等）来自这里 |
 
 注意 **Pagefind 不在 `astro.config.mjs` 里**，它不是集成：`package.json:16` 的 build 脚本在 `astro build` 之后跑 `pagefind --site dist` 生成索引。所以搜索组件与索引之间只能靠 window 事件（`pagefindready`）衔接，而不是靠集成注入。
 

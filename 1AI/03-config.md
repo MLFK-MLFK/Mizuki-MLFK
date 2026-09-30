@@ -200,7 +200,7 @@ drawer: [profile, announcement, music-sidebar, categories, tags]
 
 **顺序由 `components` 数组决定，不由 `properties` 决定**——`properties` 只提供元数据。若某个类型出现在 `components` 但不在 `properties`，`getComponentsByPosition()` 会兜底返回 `{ type, position:"top" }`（`src/utils/widget-manager.ts:81-84`），只有 top 位置、无动画类；注意这个兜底仅在请求位置恰好是 `"top"` 时触发（`:82` 的 `&& position === "top"`），请求 sticky 时该组件会被 `:85` 的 `null` 过滤掉。
 
-`position` 语义（注释在 `src/config.ts:491`）：`"top"` 固定顶部，`"sticky"` 粘性可滚。移动端强制走 `drawer`；平板端右侧**直接丢弃**——`widget-manager.ts:61-68`：请求 right 时 `return []`，请求 left 时只有在 `components.left` 为空的情况下才改用 right，本项目 left 非空，所以平板端只有左栏内容。
+`position` 语义（注释在 `src/config.ts:499`、`:526`）：`"top"` 固定顶部，`"sticky"` 粘性可滚。移动端强制走 `drawer`；平板端右侧**直接丢弃**——`widget-manager.ts:61-68`：请求 right 时 `return []`，请求 left 时只有在 `components.left` 为空的情况下才改用 right，本项目 left 非空，所以平板端只有左栏内容。
 
 ---
 
@@ -234,7 +234,7 @@ drawer: [profile, announcement, music-sidebar, categories, tags]
 
 类型系统帮你抓的几类错：
 
-1. **联合类型限值**。`timeZone` 是一个从 `-12` 到 `12` 的字面量联合（`src/types/config.ts:16-41`），写 `13` 直接报错。`lang` 是 10 个语言码的联合（`src/types/config.ts:43-53`），写 `"zh"` 报错。`themeColor.hue` 只是 `number`，不校验 0-360——范围是**运行时**在滑杆上限制的（`DisplaySettings.svelte:20-24`）。
+1. **联合类型限值**。`timeZone` 是一个从 `-12` 到 `12` 的字面量联合（`src/types/config.ts:16-41`），写 `13` 直接报错。`lang` 是 10 个语言码的联合（`src/types/config.ts:43-53`），写 `"zh"` 报错。`themeColor.hue` 只是 `number`，不校验 0-360——范围是**运行时**在滑杆上限制的（`DisplaySettings.svelte:73-75`）。
 2. **拼写枚举**。`postListLayout.defaultMode` 是 `"list" | "grid"`（`src/types/config.ts:74`），`wallpaperMode.defaultMode` 是 `"banner" | "fullscreen" | "none"`（`src/types/config.ts:137`），写错字符串立刻被抓。
 3. **组件名白名单**。`components.left/right/drawer` 是 `WidgetComponentType[]`（`src/types/config.ts:397-401`），写一个不存在的组件名报错。
 4. **`Record<LinkPreset, NavBarLink>` 的完备性**。`src/constants/link-presets.ts:7` 用 `Record<LinkPreset, NavBarLink>`，少写任何一个枚举成员都会编译失败。
@@ -292,7 +292,7 @@ const postsCollection = defineCollection({
 
 `spec` 集合的 schema 是空对象，所以 `src/content/spec/about.md`、`friends.md` 可以自由写 frontmatter；它们通过 `getEntry("spec","about")` 取用（`src/pages/about.astro:11`、`src/pages/friends.astro:20`）。
 
-集合的消费方式（`getCollection("posts")` / `getCollection("spec")`）集中在 `src/utils/content-utils.ts`。草稿过滤是**按环境**的：
+posts 集合的 `getCollection("posts")` 消费集中在 `src/utils/content-utils.ts`；`spec` 集合则由 `src/pages/about.astro:11` 与 `src/pages/friends.astro:20` 用 `getEntry("spec", ...)` 直接取用。草稿过滤是**按环境**的：
 
 ```ts
 return import.meta.env.PROD ? data.draft !== true : true;

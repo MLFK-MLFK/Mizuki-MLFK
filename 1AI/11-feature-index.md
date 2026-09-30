@@ -49,7 +49,7 @@
 | RSS / Atom | 两种订阅源 + 两个介绍页 | `src/pages/rss.xml.ts`、`src/pages/atom.xml.ts` | `src/pages/rss.astro`、`src/pages/atom.astro`、`src/components/widgets/feed/FeedInfo.astro` | `siteURL`、`profileConfig` |
 | Sitemap | 由集成在构建时生成 | 无独立文件 | `@astrojs/sitemap`（`astro.config.mjs:1` 导入，`astro.config.mjs:159` 启用） | 无 |
 | robots.txt | 输出抓取规则与 sitemap 地址 | `src/pages/robots.txt.ts` | 同文件 | `siteURL`（经 `import.meta.env.SITE`） |
-| 文章元数据 API | 给运行期脚本喂标题、分类、密码标记 | `src/pages/api/allPostMeta.json.ts` | 同文件 | 无 |
+| 文章元数据 API | 输出全部文章的标题、分类、密码标记；**当前无站内调用方**（全仓 grep `allPostMeta` 只命中它自己和文档） | `src/pages/api/allPostMeta.json.ts` | 同文件 | 无 |
 | OG 图生成 | 用 satori + sharp 生成分享图 | `src/pages/og/[...slug].png.ts` | 同文件 | `generateOgImages` |
 
 ---
@@ -127,7 +127,7 @@ src/components/widgets/sidebar/SideBar.astro   （外层壳，决定左右两列
 
 - 索引用 `pagefind.yml` 配置，排除 `span.katex`、`[data-pagefind-ignore]`、`#search-panel` 等。
 - 正文容器 `src/components/misc/Markdown.astro:12` 上打了 `data-pagefind-body`，这是被索引的边界。
-- 加载器在 `src/components/organisms/navigation/Navbar.astro:283-313`：只有 `import.meta.env.PROD` 时才注入脚本，先 `HEAD` 探一下 `/pagefind/pagefind.js` 存在与否，成功则 `import` 并设置 `excerptLength: 20`，失败则把 `window.pagefind` 替换成一个返回空结果的桩，避免 UI 报错。
+- 加载器在 `src/components/organisms/navigation/Navbar.astro:284-313`：只有 `import.meta.env.PROD` 时才注入脚本，先 `HEAD` 探一下 `/pagefind/pagefind.js` 存在与否，成功则 `import` 并设置 `excerptLength: 20`，失败则把 `window.pagefind` 替换成一个返回空结果的桩，避免 UI 报错。
 - 查询逻辑在 `src/components/organisms/navigation/Search.svelte:128-149`，并监听 `pagefindready` / `pagefindloaderror` 两个自定义事件。
 - 开发环境走 `fakeResult`（`Search.svelte:23-40`），提示「搜索在 dev 下不能用」。
 
@@ -167,7 +167,7 @@ src/components/widgets/sidebar/SideBar.astro   （外层壳，决定左右两列
 
 #### 关于页
 
-- `src/pages/about.astro`，内容不是写死在 `.astro` 里，而是 `getEntry("spec", "about")` 从 content collection 取、再 `render` 成组件（`about.astro:12-19`）。找不到条目会直接抛错。
+- `src/pages/about.astro`，内容不是写死在 `.astro` 里，而是 `getEntry("spec", "about")` 从 content collection 取、再 `render` 成组件（`about.astro:11-19`）。找不到条目会直接抛错。
 - 用 `PageHeader` + `Markdown` 包裹正文，底部挂 `<Comment path="/about/" />`（`about.astro:33-42`）。
 - 导航里「关于」指向它（`src/constants/link-presets.ts:16-19` 的 `LinkPreset.About`，`url: "/about/"`）。
 
@@ -181,13 +181,13 @@ src/components/widgets/sidebar/SideBar.astro   （外层壳，决定左右两列
 - 状态在 `src/stores/musicPlayerStore`，组件订阅它；子模块分层为 `atoms/`、`molecules/`、`organisms/`、`hooks/`。
 - 悬浮入口有两种模式：`floatingEntryMode: "fab"` 时收进 `FloatingControls` 的 FAB 组（`FabMusicPanel.svelte` + `src/components/control/MusicFabButton.svelte`），`"default"` 时是独立悬浮播放器。
 - 来源模式 `musicPlayerConfig.mode`：`"local"` 用本地歌单 `LOCAL_PLAYLIST`，定义在 `src/components/widgets/music-player/constants.ts:7-32`（3 首，注意**不是** `src/constants/constants.ts`）；`"meting"` 走 Meting API。配置在 `src/config.ts:467`。
-- 键盘交互：进度条与音量条各自处理 `Enter` / 空格 / 方向键，并在 `<svelte:window on:keydown>` 上挂了音量键（`MusicPlayer.svelte:198`）。
+- 键盘交互：进度条与音量条各自处理 `Enter` / 空格 / 方向键，并在 `<svelte:window on:keydown>` 上挂了音量键（`MusicPlayer.svelte:199`）。
 
 #### 侧栏音乐（迷你播放器）
 
 - 组件 `src/components/widgets/music-sidebar/SidebarMusicClient.svelte`，通过 `client:only="svelte"` 挂载。
 - 它和全屏播放器共享同一个 `musicPlayerStore`（`SidebarMusicClient.svelte:5`）；`FabMusicPanel` 复用了这里的 `SidebarCover` / `SidebarControls` 等子组件。
-- 状态同步靠 `window` 上的自定义事件 `music-sidebar:state`（`SidebarMusicClient.svelte:24-26` 注册，`:32-37` 注销）。
+- 状态同步靠 `window` 上的自定义事件 `music-sidebar:state`（`SidebarMusicClient.svelte:24-26` 注册，`:28-35` 注销）。
 
 #### 日历
 
@@ -258,7 +258,7 @@ src/components/widgets/sidebar/SideBar.astro   （外层壳，决定左右两列
 - `src/pages/projects.astro`，数据 `src/data/projects.ts`，卡片 `src/components/features/projects/ProjectCard.astro`；分类的中文名与图标用 `switch` 硬编码。
 - `src/pages/skills.astro`，数据 `src/data/skills.ts`，卡片 `src/components/features/skills/SkillCard.astro`。
 - `src/pages/timeline.astro`，数据 `src/data/timeline.ts`，类型固定为 `education / work / project / achievement`，卡片 `src/components/features/timeline/TimelineCard.astro`。
-- 另有一批同系列但**当前没有被任何页面引用**的组件目录，共六个：`features/featured-projects/`、`features/projects-category/`、`features/stats/`、`features/stats-grid/`、`features/tech-stack/`、`features/section-title/`。其中 `stats` 会被 `src/components/index.ts:13` 的全局 barrel 顺带重导出，但同样没有页面用它。`features/page-header/` 不在此列 —— 它正被 7 个页面使用（`about.astro`、`albums.astro`、`anime.astro`、`friends.astro`、`projects.astro`、`skills.astro`、`timeline.astro`）。
+- 另有一批同系列但**当前没有被任何页面引用**的组件目录，共六个：`features/featured-projects/`、`features/projects-category/`、`features/stats/`、`features/stats-grid/`、`features/tech-stack/`、`features/section-title/`。其中 `stats` 会被 `src/components/index.ts:10` 的全局 barrel 顺带重导出，但同样没有页面用它。`features/page-header/` 不在此列 —— 它正被 7 个页面使用（`about.astro`、`albums.astro`、`anime.astro`、`friends.astro`、`projects.astro`、`skills.astro`、`timeline.astro`）。
 
 #### 设备页
 

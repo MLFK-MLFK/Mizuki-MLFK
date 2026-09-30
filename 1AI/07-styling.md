@@ -54,7 +54,7 @@
 - `ZenMaruGothic-Medium`（`/assets/font/ZenMaruGothic-Medium.ttf`，`src/styles/main.css:30-35`）
 - `萝莉体 第二版`（`/assets/font/loli.ttf`，`src/styles/main.css:38-44`）
 
-字体文件由构建脚本压缩后复制到 `dist/`（`src/layouts/partials/HeadTags.astro:95-96` 的注释说明了这一点，所以它不在 head 里做 preload，避免 404）。注意「JetBrains Mono Variable」只在起始页的等宽字体栈里出现（`src/styles/landing/landing.css:80` 的 `--lp-font-mono`），**没有**对应的 `@font-face`，靠系统字体兜底。
+字体文件由构建脚本压缩后复制到 `dist/`（`src/layouts/partials/HeadTags.astro:95-96` 的注释说明了这一点，所以它不在 head 里做 preload，避免 404）。注意「JetBrains Mono Variable」**不只**在起始页的等宽字体栈里出现（`src/styles/landing/landing.css:80` 的 `--lp-font-mono`），代码块字体栈里也用它：`src/styles/markdown.css:42`、`src/styles/expressive-code.css:22`、`src/styles/encrypted-content.css:42`，以及 `astro.config.mjs:133` 的 `codeFontFamily`。它还**有**对应的 `@font-face`：`src/components/misc/Markdown.astro:3` 直接 `import "@fontsource-variable/jetbrains-mono"`，由 Vite 打进包里，所以代码块能真用上这个字体，不是靠系统字体兜底。
 
 ### 构建层的 CSS 产包选项
 

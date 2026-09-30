@@ -63,7 +63,7 @@ pnpm/npm 在跑 `build` 前会自动先跑 `prebuild`，于是 `scripts/sync-con
 ### 2.2 开关与前提
 
 - 开关默认是**开**：`scripts/sync-content.js:15` 是 `process.env.ENABLE_CONTENT_SYNC !== "false"`，不设环境变量时为 `true`。只有显式设为 `false` 才会在 `:22`–`:28` 直接 `process.exit(0)` 跳过。
-- 本仓 `.env:13` 显式写了 `ENABLE_CONTENT_SYNC=true`，而 `.env` 被 `.gitignore:19` 忽略，所以它只存在于本地。
+- 本仓 `.env:13` 显式写了 `ENABLE_CONTENT_SYNC=true`，而 `.env` 被 `.gitignore:21` 忽略，所以它只存在于本地。
 - 上面那两个破坏性副作用只有在 (a) 开关为真且 (b) `CONTENT_DIR`（默认 `./content`）是有效 git 仓库时才会走到；若中途 `execSync` 抛错，会被 `:165` 的 `catch` 吞掉，commit 便不执行。
 
 ### 2.3 四段速查表
@@ -153,9 +153,9 @@ dist/
 | `minify: "esbuild"` | `astro.config.mjs:261` | JS 用 esbuild 压缩 |
 | `rollupOptions.onwarn` | `astro.config.mjs:262` | 屏蔽「动态导入又被静态导入」的特定警告 |
 
-**`esbuildOptions.drop` 不生效，别指望它去掉 `console`。** `astro.config.mjs:279`–`:284` 里那段 `vite.build.esbuildOptions` 看起来是「生产环境 drop 掉 `console` 与 `debugger`」，但 **Vite 7 的 `build` 配置里根本没有 `esbuildOptions` 这个键**：Vite 只认顶层的 `esbuild`（`node_modules/.pnpm/vite@7.3.2/.../config.js:6220` 的 `config$2.esbuild`）与 `optimizeDeps.esbuildOptions`（同文件 `:31446`），全仓找不到 `build.esbuildOptions` 的消费点。
+**`esbuildOptions.drop` 不生效，别指望它去掉 `console`。** `astro.config.mjs:279`–`:284` 里那段 `vite.esbuildOptions`（与 `build` 同级）看起来是「生产环境 drop 掉 `console` 与 `debugger`」，但 **Vite 7 的 `build` 配置里根本没有 `esbuildOptions` 这个键**：Vite 只认顶层的 `esbuild`（`node_modules/.pnpm/vite@7.3.2/.../config.js:6220` 的 `config$2.esbuild`）与 `optimizeDeps.esbuildOptions`（同文件 `:31446`），全仓找不到 `build.esbuildOptions` 的消费点。
 
-实测佐证：当前生产产物 `dist/_astro/Search.Xo8n1xoh.js` 里仍保留 `console.log("Pagefind status on init:", ...)`（即 `Search.svelte:159` 那条），`dist/_astro` 下多个 JS 都含 `console.log`。所以「生产构建会移除 console」这个判断是错的，**生产里 `console.log` 原样保留**。调试用的日志上线前要自己删。
+实测佐证：当前生产产物 `dist/_astro/Search.UjKW9rDd.js` 里仍保留 `console.log("Pagefind status on init:", ...)`（即 `Search.svelte:159` 那条），`dist/_astro` 下多个 JS 都含 `console.log`。所以「生产构建会移除 console」这个判断是错的，**生产里 `console.log` 原样保留**。调试用的日志上线前要自己删。
 
 `astro.config.mjs:224` 的 `optimizeDeps.include` 与 `:238` 的 `server.warmup` 都**只影响 dev server**，跟生产 `dist/` 无关。
 
@@ -244,7 +244,7 @@ dist/
 
 - `scripts/sync-content.js:11` 调 `loadEnv()`。
 - `scripts/load-env.js:10`–`:29` 手工读根目录 `.env`，按行用正则 `^([^=]+)=(.*)$` 拆分，去掉首尾引号后塞进 `process.env`。
-- `.env` 被 `.gitignore:19` 忽略，仓库里不存在（CI 也没有），所以 CI / 部署平台上必须靠 workflow 的 `env:` 或平台环境变量提供。
+- `.env` 被 `.gitignore:21` 忽略，仓库里不存在（CI 也没有），所以 CI / 部署平台上必须靠 workflow 的 `env:` 或平台环境变量提供。
 
 主要变量：
 
@@ -376,7 +376,7 @@ on:
 新人最容易混淆的几处，集中列一下：
 
 1. **构建期产物 vs 运行期代码**：`dist/pagefind/`、`dist/assets/font/*.woff2`、`dist/_headers` 都只在构建期生成；`Search.svelte`、`Navbar.astro` 里的 `loadPagefind` 是运行期代码。两者靠 `import.meta.env.PROD` / `DEV` 在编译期分流（`Navbar.astro:284`、`Search.svelte:130`、`:135`）。
-2. **`console.log` 在生产构建里不会消失**：`astro.config.mjs:279` 的 `vite.build.esbuildOptions.drop` 因为不是 Vite 7 认识的键，实际不生效（见 3.3）。所以 `Search.svelte:159` 这类调试点在生产产物里仍在。
+2. **`console.log` 在生产构建里不会消失**：`astro.config.mjs:279` 的 `vite.esbuildOptions.drop`（与 `build` 同级）因为不是 Vite 7 认识的键，实际不生效（见 3.3）。所以 `Search.svelte:159` 这类调试点在生产产物里仍在。
 3. **自写脚本靠正则读 `src/config.ts`**：`update-anime.mjs:14`、`compress-fonts.js:15`/`:19`/`:374`/`:503` 都用正则从 config 文本里抠值。改 `src/config.ts` 的写法（空格、缩进、换行）可能悄悄让正则不匹配 —— 匹配不到时它们多数会退回默认值而不是报错（其中 `update-anime.mjs:21`/`:23` 会默认成 `"bangumi"`，反而去联网抓取）。
 4. **`&&` 串联意味着「前一步坏，后面全不跑」**：第 1 段 `update-anime` 退非零，`astro build` 就不跑；第 3 段 `pagefind` 失败，字体压缩也不跑。排查「构建产物缺东西」时先看链条断在哪一段。
 5. **`output: "static"` 下的 redirect 实现**：`/start` 的重定向不是服务端跳转，而是构建出一个 meta refresh 的 HTML（`astro.config.mjs:47`、`:50`）。

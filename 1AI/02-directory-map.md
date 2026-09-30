@@ -13,7 +13,8 @@
 这个仓库有 npm 生命周期钩子会在你毫不知情时改动 Git 历史，先记住再动手：
 
 - `package.json:8` 的 `predev` 与 `package.json:9` 的 `prebuild` 都会执行 `node scripts/sync-content.js`。该脚本结尾在 `scripts/sync-content.js:157-161` 执行 `git add .` 加 `git commit -m "chore(content): sync …"`，会把工作区**所有**改动一并提交。
-- 因此不要运行 `npm run dev`、`npm run build`、`pnpm dev`、`pnpm build`、`pnpm start`。需要类型检查或构建时绕过 npm 脚本直接调用：`npx astro check`、`npx astro build`。
+- 因此不要运行 `npm run dev`、`npm run build`、`pnpm dev`、`pnpm build`，也不要单独跑 `pnpm sync-content` 或 `pnpm init-content`（后两个等同 `prebuild` 的副作用，`init-content` 还会先整份覆盖 `.env`）。需要类型检查或构建时绕过 npm 脚本直接调用：`npx astro check`、`npx astro build`。
+- **`pnpm start` 是安全的**：`package.json:11` 的 `start` 就是 `astro dev`，`scripts` 段里没有 `prestart`，不会碰到 `sync-content.js`。日常启动就用它。
 - 想确认某个 npm 脚本到底做什么，读 `package.json` 与 `scripts/` 下的源文件，不要跑它。
 
 生成物判定速记：**`dist/`、`.astro/`、`node_modules/`、`content/` 一律不用读**；`content/` 尤其危险，它是另一份完整仓库的快照。
@@ -30,11 +31,12 @@
 | `public/` | 原样拷贝到站点根的静态文件 | `public/pio/`（看板娘模型）、`public/assets/`、`public/js/`（页面级脚本）、`public/images/`、`public/favicon/` |
 | `scripts/` | 构建/运维用的 Node 脚本 | 详见第三节 |
 | `docs/` | 项目自带文档 | `docs/rule/` 是开发规范；`docs/editor/`、`docs/image/` 是素材；根级还有内容分离与部署说明 |
-| `content/` | **独立模式下的内容仓库克隆** | 一个完整的 Git 仓库（内含自己的 `.git`），被 `.gitignore:23` 忽略 |
+| `content/` | **独立模式下的内容仓库克隆** | 一个完整的 Git 仓库（内含自己的 `.git`），被 `.gitignore:25` 忽略 |
 | `dist/` | **生成物，可忽略** | `npx astro build` 的产物，`.gitignore:2` |
-| `.astro/` | **生成物，可忽略** | Astro 生成的类型，`.gitignore:5` |
-| `node_modules/` | **生成物，可忽略** | `.gitignore:10` |
-| `demo/` `plans/` | **可忽略** | 被 `.gitignore:6-7` 忽略，本地不存在也不影响构建 |
+| `dist_bak/` | **手工留的构建产物备份，可忽略** | 一份 `dist/` 的旧快照。`.gitignore:4` 专门为它加了忽略规则，理由正是本文第一节那个坑——它是为了躲开 `sync-content.js` 结尾的 `git add .` 才单独放这儿并写进 `.gitignore` 的 |
+| `.astro/` | **生成物，可忽略** | Astro 生成的类型，`.gitignore:7` |
+| `node_modules/` | **生成物，可忽略** | `.gitignore:12` |
+| `demo/` `plans/` | **可忽略** | 被 `.gitignore:8-9` 忽略，本地不存在也不影响构建 |
 | `.github/` | GitHub Actions 与 Issue/PR 模板 | `workflows/` 下 4 个：`CI.yml`、`build.yml`、`deploy.yml`、`lint.yml` |
 | `.vscode/` `.devin/` | 编辑器与 AI 助手配置 | 不影响构建 |
 | `1AI/` | 本系列笔记的落点目录 | 不在任何构建流程里 |
@@ -64,7 +66,7 @@
 | 脚本 | 用途 | 触发方式 |
 | --- | --- | --- |
 | `scripts/sync-content.js` | 同步内容仓库、并静默提交主仓库 | `predev`/`prebuild` 钩子，见第一节 |
-| `scripts/init-content-repo.js` | 初始化内容分离模式（问答式克隆内容仓库、写 `.env`） | `package.json:7` 的 `init-content` |
+| `scripts/init-content-repo.js` | 初始化内容分离模式（问答式克隆内容仓库、写 `.env`） | `package.json:7` 的 `init-content`。⚠️ 会**整份覆盖**根目录 `.env`（`scripts/init-content-repo.js:78`，只留 `CONTENT_REPO_URL` / `CONTENT_DIR` 两行，`INDEXNOW_KEY`、`BILI_SESSDATA` 等静默丢失），且紧接着在 `:84` 触发同步脚本的自动提交 |
 | `scripts/update-anime.mjs` | 拉取番剧数据 | `build` 链首 |
 | `scripts/update-bangumi.mjs` / `scripts/update-bilibili.mjs` | 拉取 Bangumi / B站观看进度 | `update-bangumi` / `update-bilibili` |
 | `scripts/compress-fonts.js` | 字体子集化（fontmin） | `build` 链尾 |
@@ -81,7 +83,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 
 也就是「先更新番剧数据 → Astro 构建 → Pagefind 为 `dist/` 建搜索索引 → 压缩字体」。`pagefind.yml` 控制索引时要排除的选择器（`.katex`、`[data-pagefind-ignore]`、搜索面板本身等）。
 
-内容分离模式的配套：来源是 `content/`（一个独立 Git 仓库的克隆，被 `.gitignore:23` 忽略），开关在 `.env` 的 `ENABLE_CONTENT_SYNC`、`CONTENT_REPO_URL`、`CONTENT_DIR`，说明文档是 `docs/CONTENT_REPOSITORY.md`、`docs/CONTENT_SEPARATION.md`、`docs/MIGRATION_GUIDE.md`。**不启用内容分离时站点读的是 `src/content/`**；启用后很多脚本从 `content/` 取文章。
+内容分离模式的配套：来源是 `content/`（一个独立 Git 仓库的克隆，被 `.gitignore:25` 忽略），开关在 `.env` 的 `ENABLE_CONTENT_SYNC`、`CONTENT_REPO_URL`、`CONTENT_DIR`，说明文档是 `docs/CONTENT_REPOSITORY.md`、`docs/CONTENT_SEPARATION.md`、`docs/MIGRATION_GUIDE.md`。**不启用内容分离时站点读的是 `src/content/`**；启用后很多脚本从 `content/` 取文章。
 
 ---
 
@@ -122,7 +124,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 - 集合定义在 `src/content.config.ts`：`posts` 用 glob 收 `src/content/posts/**/*.{md,mdx}`（`src/content.config.ts:6`），`spec` 收 `src/content/spec/**`（`src/content.config.ts:44`），schema 在 `src/content.config.ts:7-41` 定义（含 `permalink`、`alias`、加密字段）。
 - `src/content/posts/` 下**还有子目录**：`VRCTool/index.md`、`guide/index.md`（含图片）、`video_ZB/index.md`，以及根级的 `video.md`。文章 id 会带目录前缀，直接影响 slug 与 permalink 推导。
 - `src/content/spec/` 只有 `about.md` 与 `friends.md`。
-- `src/data/` 是手写数据；`bangumi-data.json`、`bilibili-data.json` 是脚本生成的，被 `.gitignore:49,52` 忽略。
+- `src/data/` 是手写数据；`bangumi-data.json`、`bilibili-data.json` 是脚本生成的，被 `.gitignore:51,54` 忽略。
 
 ### 4.2 `src/plugins/` 里到底有哪些插件
 
@@ -176,7 +178,9 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 
 `control/` 在规范文档里没有独立成层，但代码里确实是一层。放的是「跨页面悬浮/全局交互」的控件：`BackToTop.astro`、`BackToHome.astro`、`FloatingControls.astro`（聚合容器）、`FloatingTOC.astro`、`ThemeSwitch.svelte`、`LayoutSwitch.svelte`、`Pagination.astro`、`PageProgressBar/`（自带 `page-progress-bar.css`）、`ButtonLink.astro`、`ButtonTag.astro`、`MusicFabButton.svelte`。
 
-判断标准是「这不是某条业务的数据展示，而是一个全局可点的浮层控件」。项目注释反复强调这些控件要「常驻」：`src/scripts/core/swup-config.ts:22-27` 的 `persistElements` 把 `#navbar-wrapper`、`#sidebar`、`.music-player`、`#pio-container` 列为 swup 换页时不重建的元素，浮动控件同理。
+判断标准是「这不是某条业务的数据展示，而是一个全局可点的浮层控件」。项目注释反复强调这些控件要「常驻」：`src/scripts/core/swup-config.ts:22-27` 定义了一个 `persistElements`，把 `#navbar-wrapper`、`#sidebar`、`.music-player`、`#pio-container` 列为「swup 换页时不重建」的元素。
+
+> ⚠️ **这个字段从来没生效过**。同一文件 `:19` 的 `animationScope` 也一样：两者除定义处外全仓库 grep 不到任何引用。`SWUP_SELECTORS` 真正的消费方是 `swup-manager.ts` 与 `core/swup-hooks.ts`，它们只取 `bannerWrapper`、`navbar`、`tocWrapper`、`contentWrapper` 等其它键。这两个字段从未被传给 swup，属于预留项，「换页不重建」的效果并不存在 —— 实际靠的是各控件自己挂 swup 的 `content:replace` 重新初始化。
 
 ### 5.3 features —— 按业务域切分
 
@@ -202,7 +206,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 - `widgets/music-sidebar/`（11 文件）：`components/` 6 个文件 —— `SidebarControls`、`SidebarCover`、`SidebarPlaylist`、`SidebarProgress`、`SidebarTrackInfo`，以及第 6 个不叫 `Sidebar*` 的 `TrackListItem.svelte`；另有 `hooks/`。
 - `widgets/common/`（4 文件）：`WidgetLayout.astro`、`WidgetHeader.svelte`、`AccordionDrawer.svelte`、`index.ts` —— 所有侧栏 widget 的公共外壳。
 
-侧栏 widget 的接入有专门规范：`docs/rule/06-sidebar-widget-dev.md` 要求三步缺一不可 —— 声明 `WidgetComponentType`、配置 `sidebarLayoutConfig`、在组件映射表注册。映射表在 `src/utils/widget-manager.ts:11`。
+侧栏 widget 的接入有专门规范：`docs/rule/06-sidebar-widget-dev.md` 要求三步缺一不可 —— 声明 `WidgetComponentType`、配置 `sidebarLayoutConfig`、在所有侧栏渲染器的 componentMap 中注册（`src/components/widgets/sidebar/SideBar.astro`、`src/components/layout/RightSideBar.astro` 等，见该文档步骤 3）。
 
 ### 5.5 misc —— 跨页面杂项
 
@@ -224,7 +228,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 | 侧栏里的一个小部件（简介、分类、标签、日历） | `widgets/<名>/` | 受 `sidebarLayoutConfig` 调度 |
 | 布局骨架零件（Banner、侧栏列、右侧栏容器） | `layout/` | 只负责排版结构 |
 | 跨页面通用容器/渲染器（Markdown、License、壁纸） | `misc/` | 不属于任何业务域 |
-| 导航栏 / 页脚 | `organisms/navigation|footer/` | 全站级有机体 |
+| 导航栏 / 页脚 | `organisms/navigation\|footer/` | 全站级有机体 |
 | 评论组件 | `comment/` | 目前独立在根层 |
 
 规范文档 `docs/rule/05-atom-component-usage.md` 给出的分层是 `atoms → features → organisms → widgets → misc`，**以它为准**；它没有提 `control/`、`layout/`、`common/`、`comment/` 四层，但代码里它们确实存在。
@@ -292,7 +296,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 关键实现：
 
 - `src/utils/permalink-utils.ts:14` 的 `initPostIdMap()` 把所有传入的文章按发布时间**升序**编号（最早 = 1），供 `%post_id%` 占位符使用（替换发生在 `src/utils/permalink-utils.ts:113`）。它是**有缓存的模块级单例**（`postIdMap` 变量，判空在 `src/utils/permalink-utils.ts:17-19`）。函数本身不过滤草稿，靠调用方传入非草稿集合。
-- 调用方共 6 处：`home/[...page].astro`（:26，经首页分页）、`posts/[...slug].astro`（:39）、`[...permalink].astro`（:44）、`rss.xml.ts`（:33）、`atom.xml.ts`（:32），以及构建期工具内部 `src/utils/content-utils.ts:68`（`getSortedPosts` 的包装）与 `src/utils/post-url.ts:8`。**OG 图不调用它** —— `src/pages/og/[...slug].png.ts` 只用 `removeFileExtension(post.id)` 生成 slug，与 `%post_id%` 无关。
+- 调用方共 7 处：`home/[...page].astro`（:26，经首页分页）、`posts/[...slug].astro`（:39）、`[...permalink].astro`（:44）、`rss.xml.ts`（:33）、`atom.xml.ts`（:32），以及构建期工具内部 `src/utils/content-utils.ts:68`（位于 `getSortedPostsList()` 内）与 `src/utils/post-url.ts:8`。**OG 图不调用它** —— `src/pages/og/[...slug].png.ts` 只用 `removeFileExtension(post.id)` 生成 slug，与 `%post_id%` 无关。
 - `src/utils/permalink-utils.ts:62` 的 `generatePermalinkSlug()` 按「自定义 permalink → 全局模板 → alias → 文件名」的优先级生成 slug。
 - 为了兼容旧链接，即便启用了 permalink，`src/pages/posts/[...slug].astro:52-75` 的每条分支仍会**额外**保留默认 `/posts/<slug>/` 路径（`:64` 注释即为此意）。所以同一篇文章可能同时有两个可访问 URL。
 
@@ -350,7 +354,7 @@ export { default as LastModified } from "./LastModified.astro";
 export { default as PostCard } from "./PostCard.astro";
 ```
 
-顶层 `src/components/index.ts` 再做一次聚合：`export * from "./atoms"`（`src/components/index.ts:2`）、只挑出 8 个 feature（`src/components/index.ts:5-12`）、organisms（`:15-16`）、11 个 widget（`:19-30`，文件共 30 行）。注意它**并未聚合全部 features** —— albums/anime/archive/auth 等没有导出。
+顶层 `src/components/index.ts` 再做一次聚合：`export * from "./atoms"`（`src/components/index.ts:2`）、只挑出 8 个 feature（`src/components/index.ts:5-12`）、organisms（`:15-16`）、11 个 widget（`:19-29`，文件共 29 行）。注意它**并未聚合全部 features** —— albums/anime/archive/auth 等没有导出。
 
 barrel 不追求全覆盖，两点要记住：
 
@@ -364,14 +368,14 @@ barrel 不追求全覆盖，两点要记住：
 新人最容易踩的：
 
 1. **`/` 不是文章列表**。`/` 是起始页，文章列表在 `/home/`；判断首页用 `HOME_PATH`（`src/constants/constants.ts:14`）。
-2. **`content/` 是另一个 Git 仓库**，不是 `src/content/` 的简写。它被 `.gitignore:23` 忽略，是内容分离模式下拉下来的整站克隆。
+2. **`content/` 是另一个 Git 仓库**，不是 `src/content/` 的简写。它被 `.gitignore:25` 忽略，是内容分离模式下拉下来的整站克隆。
 3. **`src/content/` 才是文章源**，集合定义在 `src/content.config.ts`：`posts` 收 `src/content/posts/**` 的 md/mdx，`spec` 收 `src/content/spec/**`（about、friends）。
 4. **`src/utils` 不全是运行时工具**，4 个文件依赖 `astro:content`，浏览器里用不了。
 5. **一篇文章可能有两个 URL**（`/posts/<slug>/` 与根级 permalink），见第七节。
 6. **`featurePages` 关掉页面不是 404，而是跳 `/404/` 的空壳**，页面文件存在 ≠ 能访问，见第六节。
 7. **`docs/rule/` 的目录树与代码不符**：文档里的 `molecules/` 层在 `src/components/` 下不存在；`comment/` 的位置、`control/`/`layout/` 的存在都与文档对不上，见 5.8。
 8. **`widgets/` 里 `pio` 的映射路径是坏的**：`src/utils/widget-manager.ts:19` 写的是 `"../components/widget/Pio.astro"`，但仓库里没有 `src/components/widget/` 目录（只有 `widgets/`），实际 Pio 在 `src/components/features/pio/Pio.svelte`，由 `src/layouts/Layout.astro:4` 引用。这条属于潜伏配置：`getComponentPath()`（`src/utils/widget-manager.ts:184-185`）在整个 `src/` 内没有任何调用点，所以不会当场崩溃。
-9. **起始页相关文件正处于未提交状态**：`src/pages/index.astro`、`src/pages/home/`、`src/components/features/landing/`、`src/scripts/landing/`、`src/styles/landing/` 都是新增未跟踪文件；旧的 `src/pages/[...page].astro` 已被删除。
+9. **起始页相关文件均已提交**（见 commit 37a868d）：`src/pages/index.astro`、`src/pages/home/`、`src/components/features/landing/`、`src/scripts/landing/`、`src/styles/landing/` 都已纳入版本控制；旧的 `src/pages/[...page].astro` 已被删除，文章列表改由 `src/pages/home/[...page].astro` 提供。
 10. **`src/pages/zyj/`** 是个人彩蛋页（IP 归属地），不属于任何规范分层。
 
 ---

@@ -291,7 +291,7 @@ src/content/posts/*.md
 
 ### 8.1 被忽略、需要本地自建的个性化文件
 
-`.gitignore:45`–`:46` 排除了 `src/data/myself.ts` 与 `src/pages/myself.astro`。这两个文件在当前仓库里**并不存在**，`src/` 下也没有任何代码 import 它们——所以它们缺失不会影响 `npx astro check` 或构建。它们属于上游主题保留的个人数据 / 个人页占位：每个使用者自己建、自己用，不会进版本库。如果你要加「关于我」这类私人页面，可以顺着这个约定自建同名文件而不必担心被提交。
+`.gitignore:47`–`:48` 排除了 `src/data/myself.ts` 与 `src/pages/myself.astro`。这两个文件在当前仓库里**并不存在**，`src/` 下也没有任何代码 import 它们——所以它们缺失不会影响 `npx astro check` 或构建。它们属于上游主题保留的个人数据 / 个人页占位：每个使用者自己建、自己用，不会进版本库。如果你要加「关于我」这类私人页面，可以顺着这个约定自建同名文件而不必担心被提交。
 
 ---
 
@@ -302,8 +302,8 @@ src/content/posts/*.md
 | 脚本 | 数据来源 | 环境变量 | 产物 | 是否被 .gitignore |
 |---|---|---|---|---|
 | `scripts/update-anime.mjs` | **调度器**：读 `src/config.ts` 的 `anime.mode` 决定跑哪个子脚本 | 无 | 无 | — |
-| `scripts/update-bilibili.mjs` | `https://api.bilibili.com/x/space/bangumi/follow/list`（`scripts/update-bilibili.mjs:9`） | `BILI_SESSDATA`（`scripts/update-bilibili.mjs:66`） | `src/data/bilibili-data.json`（`scripts/update-bilibili.mjs:17`） | 是，`.gitignore:52` |
-| `scripts/update-bangumi.mjs` | `https://api.bgm.tv`（`scripts/update-bangumi.mjs:5`） | 无 | `src/data/bangumi-data.json`（`scripts/update-bangumi.mjs:10`） | 是，`.gitignore:49` |
+| `scripts/update-bilibili.mjs` | `https://api.bilibili.com/x/space/bangumi/follow/list`（`scripts/update-bilibili.mjs:9`） | `BILI_SESSDATA`（`scripts/update-bilibili.mjs:66`） | `src/data/bilibili-data.json`（`scripts/update-bilibili.mjs:17`） | 是，`.gitignore:54` |
+| `scripts/update-bangumi.mjs` | `https://api.bgm.tv`（`scripts/update-bangumi.mjs:5`） | 无 | `src/data/bangumi-data.json`（`scripts/update-bangumi.mjs:12`） | 是，`.gitignore:51` |
 
 调度逻辑：`scripts/update-anime.mjs:11`–`:25` 用正则从 `src/config.ts` 文本里抠出 `anime.mode`，`:52`–`:60` 按值 spawn 子脚本；`mode === "local"` 时打印一行并跳过。两个子脚本自己也各有一道 mode 校验，不匹配就直接 return（`scripts/update-bilibili.mjs:323`–`:329`、`scripts/update-bangumi.mjs:205`–`:210`）。`BILI_SESSDATA` 用于让 B 站接口返回带 cookie 的完整观看进度，取值处 `scripts/update-bilibili.mjs:64`–`:66`，拼进请求头 `cookie: SESSDATA=…`（`scripts/update-bilibili.mjs:135`）；它的值来自 `.env:54`，由 `scripts/load-env.js` 手工解析进 `process.env`。
 
@@ -371,7 +371,7 @@ commentConfig.enable && commentEnabled && path
 
 ### 11.3 当前实际状态
 
-仓库根存在 `content/`，但它是**代码仓库自己的克隆**——`CONTENT_REPO_URL` 就指向代码仓库本身（`.env:19`），且 `content/` 被 `.gitignore:23` 的 `/content/` 规则忽略（`git check-ignore -v content` → `.gitignore:23`）。
+仓库根存在 `content/`，但它是**代码仓库自己的克隆**——`CONTENT_REPO_URL` 就指向代码仓库本身（`.env:19`），且 `content/` 被 `.gitignore:25` 的 `/content/` 规则忽略（`git check-ignore -v content` → `.gitignore:25`）。
 
 实测 `content/` 顶层只有 `docs/ public/ scripts/ src/` 等代码目录，映射要的四个源目录**全部不存在**（`content/src/content/posts` 是有的，但脚本找的是 `content/posts`）。后果：四个映射**全部走「跳过不存在的源目录」分支**，既不备份、不建链接、不复制。`src/content/posts`、`src/data`、`public/images` 仍是普通目录，内容分离在本地**实际没有生效**。
 

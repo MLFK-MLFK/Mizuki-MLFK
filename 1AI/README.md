@@ -30,7 +30,7 @@
 - **怎么跑**：`pnpm install` → `pnpm start`（**不要**用 `pnpm dev`，理由见下）。
 - **最重要的约定**：站点根 `/` 是**起始页**（开屏动画），文章列表在 `/home/`。
   代码里判断首页一律用 `src/constants/constants.ts` 的 `HOME_PATH`，不要写死 `"/"`。
-- **最大的陷阱**：`pnpm dev` / `pnpm build` 会触发 `prebuild` 钩子跑 `scripts/sync-content.js`，
+- **最大的陷阱**：`pnpm dev` / `pnpm build` 会触发 `predev` / `prebuild` 钩子跑 `scripts/sync-content.js`，
   该脚本结尾执行 `git add .` 加 `git commit` —— **你未提交的改动会被自动提交掉**。
   安全替代：`pnpm start` / `npx astro build` / `pnpm check`。
 - **本机没有 Python**，也没有 Playwright 模块。处理 JSON 用 `node -e`。
@@ -72,7 +72,7 @@
 
 ## 这份文档的时效性
 
-写于 2026-10-01，对应 `master` 分支 `0665e5c`。文中的 `路径:行号` 都是当时实测的，
+写于 2026-10-01，对应 `master` 分支 `37a868d`。文中的 `路径:行号` 都是当时实测的，
 文件改动后行号会漂。发现对不上，以源码为准，顺手把这一页也更新掉。
 
 如果要核实某条说法，最快的办法是直接 grep 文档里给的那个路径和行号。

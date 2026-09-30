@@ -79,7 +79,7 @@ node scripts/update-anime.mjs && astro build && pagefind --site dist && node scr
 
 项目内置了一套「文章与代码分离」的机制，入口是 `scripts/sync-content.js` 加 `.env`：
 
-- 环境变量由 `scripts/load-env.js:10-29` 从 `.env` 手工解析进 `process.env`：`ENABLE_CONTENT_SYNC`（默认启用）、`CONTENT_REPO_URL`、`CONTENT_DIR`（默认 `./content`，`/content/` 已被 `.gitignore:22-23` 忽略，三者的读取见 `scripts/sync-content.js:15-17`）。
+- 环境变量由 `scripts/load-env.js:10-29` 从 `.env` 手工解析进 `process.env`：`ENABLE_CONTENT_SYNC`（默认启用）、`CONTENT_REPO_URL`、`CONTENT_DIR`（默认 `./content`，`/content/` 已被 `.gitignore:25` 忽略，三者的读取见 `scripts/sync-content.js:15-17`）。
 - 脚本会把内容仓库里的四个目录接到主仓库的四个位置（`scripts/sync-content.js:96-101`）：
 
   | 内容仓库内 | 主仓库内 |
@@ -194,7 +194,7 @@ swup.hooks.on('page:view',           () => dispatch('astro:page-load'));
 | --- | --- |
 | 分页：`paginate()` 生成 `/home/`、`/home/2/`…（`src/pages/home/[...page].astro:23-28`） | Swup 无刷新换页、过渡动画（`src/scripts/swup-manager.ts:57-84`） |
 | 文章正文与目录树：`render(entry)` 产出 `Content` 与 `headings`（`src/pages/posts/[...slug].astro:99`） | 主题/色相从 `localStorage` 读取（`src/layouts/partials/HeadTags.astro:114`、`:136`） |
-| OG 图：`prerender = true` + `getStaticPaths`，用 satori+sharp 出 PNG（`src/pages/og/[...slug].png.ts:22`、`:24-40`） | Fancybox 灯箱、KaTeX 复检、Mermaid 渲染（`src/scripts/core/swup-hooks.ts:111-113`） |
+| OG 图：`prerender = true` + `getStaticPaths`，用 satori+sharp 出 PNG（`src/pages/og/[...slug].png.ts:22`、`:24-40`） | Fancybox 灯箱、KaTeX 复检、滚动条初始化（`src/scripts/core/swup-hooks.ts:111-113`） |
 | 站点地图、RSS、Atom、robots、JSON 接口：构建期生成静态文件（`src/pages/rss.xml.ts`、`src/pages/atom.xml.ts`、`src/pages/robots.txt.ts`、`src/pages/api/allPostMeta.json.ts`、`src/pages/api/calendar-data.json.ts`） | 评论（Twikoo/Giscus 在 `swup.hooks.on("content:replace")` 后加载） |
 | 搜索索引：**`astro build` 之后的独立一步** `pagefind --site dist`（`package.json:16`），配置 `pagefind.yml` | Pagefind 前端查询：仅生产环境加载 `/pagefind/pagefind.js`（`src/components/organisms/navigation/Navbar.astro:284-285`） |
 | 图标：`.astro` 里用的 `astro-icon` 图标在构建期内联 | Iconify 运行期兜底：`IconifyLoader` 注入 `code.iconify.design` 的 `iconify-icon` web component（`src/components/misc/IconifyLoader.astro:106-108`），该组件运行期再去 `api.iconify.design` 取缺失图标（预连接见 `src/layouts/partials/HeadTags.astro:99`） |

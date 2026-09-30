@@ -2,7 +2,7 @@
 
 这一块讲的是「浏览器里那半台机器」：Swup 怎样把静态站伪装成 SPA、换页时哪些代码会重跑哪些不会、以及 `src/scripts` 与 `src/utils` 里一堆模块各自负责什么。它是理解「为什么有些 bug 只在点完链接之后才出现」的钥匙 —— 首屏正常、导航一次就坏的现象，九成能在这里找到答案。
 
-需要翻它的场景：新写一段只在特定页面生效的交互、发现监听器在换页后失效、怀疑某段脚本被跑了两次、看到 `swup:contentReplaced` / `astro:page-load` 这类事件名不知道哪个才真的会触发、或者想确认某个工具文件到底还活着没有。行号对应 `master` 分支 `0665e5c`，代码改动后以源码为准。
+需要翻它的场景：新写一段只在特定页面生效的交互、发现监听器在换页后失效、怀疑某段脚本被跑了两次、看到 `swup:contentReplaced` / `astro:page-load` 这类事件名不知道哪个才真的会触发、或者想确认某个工具文件到底还活着没有。行号对应 `master` 分支 `37a868d`，代码改动后以源码为准。
 
 ---
 
@@ -99,7 +99,7 @@
 - `requestHeaders: { "X-Requested-With": "swup", Accept: "text/html, application/xhtml+xml" }` —— 换页 fetch 带的头。
 - `skipPopStateHandling: t => t.state?.source !== "swup"` —— 只处理「由 swup 自己写入的历史记录」；不是 swup 写的就跳过（默认就是这条，与第 6.2 节呼应）。
 - `animateHistoryBrowsing: false` —— 历史导航默认不播过渡动画。
-- `animationScope: "html"`、`native: false`（这两项也没有被 `@swup/astro` 透传，想改同样得走 `window.swup.options`）。
+- `animationScope: "html"`（这一项没有被 `@swup/astro` 透传，Options 里也没有，想改只能走 `window.swup.options`）；`native` 默认 `false`，但它在 `@swup/astro` 的 Options（`index.d.ts:19`）和 `buildInitScript`（`script.js:4,123`）里都有，可直接在 `swup({...})` 里写。
 
 ---
 
@@ -130,12 +130,12 @@ const shouldIgnore = (ignore, url, { el, event }) => {
 
 两个参数层面的细节：
 
-1. **传给函数的 `url` 是 `pathname + search + hash`。** swup 的 `shouldIgnoreVisit` 先取 `Location.fromUrl()` 的 `pathname+search`，再拼上 `hash`，然后才交给 `ignoreVisit`（`Swup.modern.js:1` 的 `shouldIgnoreVisit`，与 `astro.config.mjs:83` 的注释一致）。
+1. **传给函数的 `url` 是 `pathname + search + hash`。** swup 的 `shouldIgnoreVisit` 先取 `Location.fromUrl()` 的 `pathname+search`，再拼上 `hash`，然后才交给 `ignoreVisit`（`Swup.modern.js:1` 的 `shouldIgnoreVisit`，与 `astro.config.mjs:86` 的注释一致）。
 2. **`data-no-swup` 由 swup 的默认 `ignoreVisit` 兜底**，不需要用户写。`script.js:119` 把用户的 `ignore` 用 `||` 接在默认规则后面：`el?.closest('[data-no-swup]') || shouldIgnore(...)`。所以 `src/components/features/landing/LandingHero.astro:108` 的 `data-no-swup` 是生效的。
 
 ### 4.1 函数会被序列化，不能闭包
 
-`ignore` 数组里的函数不是直接传引用，而是 `JSON.stringify(value, replacer)` 把函数 `toString()` 成源码字符串（`node_modules/@swup/astro/dist/serialise.js:22-34`），页面里再用 `new Function('return (' + value + ').apply(this, arguments);')` 重建（`serialise.js:43-46`）。**结果是函数拿不到任何外层作用域变量**，只能用形参和全局对象。`document` 是全局，所以 `astro.config.mjs:100` 里直接 `document.getElementById(...)` 是安全的；换成引用配置对象里的常量就会在运行时抛错。
+`ignore` 数组里的函数不是直接传引用，而是 `JSON.stringify(value, replacer)` 把函数 `toString()` 成源码字符串（`node_modules/@swup/astro/dist/serialise.js:22-34`），页面里再用 `new Function('return (' + value + ').apply(this, arguments);')` 重建（`serialise.js:43-46`）。**结果是函数拿不到任何外层作用域变量**，只能用形参和全局对象。`document` 是全局，所以 `astro.config.mjs:101` 里直接 `document.getElementById(...)` 是安全的；换成引用配置对象里的常量就会在运行时抛错。
 
 ### 4.2 本项目为什么是两条规则
 
@@ -151,7 +151,7 @@ ignore: [
 
 两条规则管的是两个方向，缺一不可：
 
-- **第一条管「目的地是起始页」**：内容页里指回 `/` 的链接，当前文档没有 `#lp-root`，只能靠 URL 精确比对拦下。这里**必须写回调、不能用字符串** —— 字符串走 `startsWith`，写 `"/"` 会把全站都忽略掉（`astro.config.mjs:80-83` 的注释就是这个原因）。
+- **第一条管「目的地是起始页」**：内容页里指回 `/` 的链接，当前文档没有 `#lp-root`，只能靠 URL 精确比对拦下。这里**必须写回调、不能用字符串** —— 字符串走 `startsWith`，写 `"/"` 会把全站都忽略掉（`astro.config.mjs:84-86` 的注释就是这个原因）。
 - **第二条管「出发地是起始页」**：只要当前文档里存在 `#lp-root`，任何跳转都忽略。后半句的 `el?.closest("#lp-root")` 是显式兜底，而 `document.getElementById("lp-root")` 那一半才是关键 —— 因为 **`swup.navigate()` 不传 `el`**。
 
 ### 4.3 `swup.navigate()` 为什么拦得住基础元素规则
@@ -355,7 +355,7 @@ swup.hooks.on('page:view',           () => dispatch('astro:page-load'));
 
 只被 `src/pages/index.astro:80-83` 的 `<script>` 引入（普通 Astro `<script>`，会被打包），因此不会进入其它页面产物。结构是「工厂函数返回 cleanup」+ `safeInit` 隔离（`:568-574`）+ `teardown` 统一回收（`:556-565`），入口 `initLanding()`（`:576-591`）用 `root.dataset.lpBooted` 防重入，并在模块顶层 `initLanding()` 自启一次（`:593`）。
 
-模块与入口（`:584-590` 的注册顺序即执行顺序）：指针光效（`:25`）、打字机（`:91`）、时钟与问候（`:161`）、进入按钮（磁吸 + 涟漪 + Enter 键，`:244`）、卡片柔光（`:329`）、数字滚动（`:355`，通过 `afterIntro` 推迟到开屏结束，`:466`）、开屏跳过与兜底（`:517`）。
+模块与入口（`:584-590` 的注册顺序即执行顺序）：开屏跳过与兜底（`:517`）、指针光效（`:25`）、打字机（`:91`）、时钟与问候（`:161`）、进入按钮（磁吸 + 涟漪 + Enter 键，`:244`）、卡片柔光（`:329`）、数字滚动（`:355`，通过 `afterIntro` 推迟到开屏结束，`:466`）。
 
 两个值得记的点：
 
