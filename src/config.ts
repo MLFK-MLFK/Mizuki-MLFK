@@ -474,7 +474,7 @@ export const musicPlayerConfig: MusicPlayerConfig = {
 	id: "14164869977", // 歌单ID
 	server: "netease", // 音乐源服务器。有的meting的api源支持更多平台,一般来说,netease=网易云音乐, tencent=QQ音乐, kugou=酷狗音乐, xiami=虾米音乐, baidu=百度音乐
 	type: "playlist", // 播单类型
-	autoplay: false, // 在页面启动时自动播放
+	autoplay: true, // 在页面启动时自动播放
 };
 
 export const footerConfig: FooterConfig = {
