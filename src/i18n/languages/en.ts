@@ -216,7 +216,6 @@ export const en: Translation = {
 	// Wallpaper mode
 	[Key.wallpaperBanner]: "Banner Mode",
 	[Key.wallpaperFullscreen]: "Fullscreen Mode",
-	[Key.wallpaperNone]: "Hide Wallpaper",
 
 	// Skills Page
 	[Key.skills]: "Skills",

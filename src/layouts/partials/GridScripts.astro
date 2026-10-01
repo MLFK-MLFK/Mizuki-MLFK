@@ -10,6 +10,8 @@ interface Props {
 	defaultPostListLayout?: string;
 	BANNER_HEIGHT?: number;
 	pageScaling?: { enable: boolean; targetWidth?: number };
+	isHomePage?: boolean;
+	scrollAutoSwitch?: { enable?: boolean; thresholdVh?: number };
 }
 
 const {
@@ -18,6 +20,8 @@ const {
 	defaultPostListLayout = "list",
 	BANNER_HEIGHT = 35,
 	pageScaling = { enable: false },
+	isHomePage = false,
+	scrollAutoSwitch = { enable: true, thresholdVh: 40 },
 } = Astro.props;
 ---
 
@@ -30,12 +34,25 @@ const {
 		defaultPostListLayout,
 		BANNER_HEIGHT,
 		pageScaling,
+		isHomePage,
+		scrollAutoSwitch,
 	}}
 >
+	// 读取当前生效的壁纸模式。
+	// "none"（无壁纸）这个模式已经删掉了，但老访客的 localStorage 里可能还留着它 ——
+	// 认不出的值一律回落 defaultWallpaperMode，绝不能把 "none" 漏给下面的 switch，
+	// 否则那个 switch 会一个分支都匹配不上，body 类一个都不加，页面直接裸奔。
+	function readStoredWallpaperMode() {
+		var stored = localStorage.getItem("wallpaperMode");
+		if (stored === "banner" || stored === "fullscreen") {
+			return stored;
+		}
+		return defaultWallpaperMode === "fullscreen" ? "fullscreen" : "banner";
+	}
+
 	// 立即执行，在页面渲染前应用壁纸模式和布局模式，避免闪烁
 	(function () {
-		const wallpaperMode =
-			localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+		const wallpaperMode = readStoredWallpaperMode();
 		const body = document.body;
 
 		// 立即应用 body 类，确保首次渲染就是正确的状态
@@ -50,10 +67,6 @@ const {
 			case "fullscreen":
 				body.classList.remove("enable-banner");
 				body.classList.add("wallpaper-transparent", "no-banner-mode");
-				break;
-			case "none":
-				body.classList.remove("enable-banner", "wallpaper-transparent");
-				body.classList.add("no-banner-mode");
 				break;
 		}
 
@@ -128,8 +141,7 @@ const {
 
 	// 根据壁纸模式动态设置 banner 和全屏壁纸的显示
 	function applyWallpaperMode() {
-		const wallpaperMode =
-			localStorage.getItem("wallpaperMode") || defaultWallpaperMode;
+		const wallpaperMode = readStoredWallpaperMode();
 		const bannerWrapper = document.getElementById("banner-wrapper");
 		const fullscreenWallpaper = document.querySelector(
 			"[data-fullscreen-wallpaper]",
@@ -228,43 +240,95 @@ const {
 				forceReflow();
 				break;
 
-			case "none":
-				// 隐藏所有壁纸
-				if (bannerWrapper) {
-					bannerWrapper.style.display = "none";
-				}
-				if (fullscreenWallpaper) {
-					fullscreenWallpaper.style.display = "none";
-				}
-				// 在无壁纸模式下也始终显示 TOC
-				if (tocWrapper) {
-					tocWrapper.classList.remove("toc-hide");
-				}
-				// 先移除body类，避免CSS冲突
-				body.classList.remove("enable-banner");
-				body.classList.remove("wallpaper-transparent");
-				// 强制重排
-				forceReflow();
-				// 移除内联样式，让CSS完全接管
-				if (mainContent) {
-					mainContent.style.removeProperty("top");
-				}
-				// 再添加no-banner-mode类
-				body.classList.add("no-banner-mode");
-				// navbar 强制设置为不透明（忽略 config 配置）
-				if (navbar) {
-					navbar.setAttribute("data-dynamic-transparent", "none");
-					// 强制移除 config 中的 data-transparent-mode 影响
-					navbar.removeAttribute("data-transparent-mode");
-				}
-				// 强制重排以确保CSS变量正确更新
-				forceReflow();
-				break;
+		}
+
+		// 壁纸模式刚被重写过一遍，滚动联动的状态要重新确认 ——
+		// 上面 banner 分支会把 wallpaper-transparent 摘掉，若此刻页面正处于
+		// 滚动折叠态，得由它重新挂回去。
+		updateScrollAutoCollapse();
+	}
+
+	/* ---------- 首页滚动联动 ---------- */
+	// 向下滚过阈值 → 横幅淡出、全屏壁纸接管（「类全屏」态）；滚回顶部 → 还原横幅。
+	//
+	// 这里刻意只切一个 body 类，而不是去调 applyWallpaperMode() 换模式。原因是重排：
+	// #banner-wrapper 是 absolute、[data-fullscreen-wallpaper] 是 fixed，两者都不占
+	// 文档流，所以只改它们的可见性不会引起任何重排，也就不会跳屏。而真正切模式会把
+	// 主内容区从 top:35vh 挪到 5.5rem（banner.css 里 body.no-banner-mode 那条
+	// !important），用户滚到一半时切过去，眼前的内容会整体跳一屏。
+	//
+	// 生效条件：在首页、且当前选的是 banner。手动选了全屏的人本来就在全屏态里，
+	// 滚动不该再去抢控制权。
+
+	const SCROLL_COLLAPSE_CLASS = "banner-scroll-collapsed";
+
+	let scrollCollapsed = false;
+	let collapseTicking = false;
+
+	function scrollAutoSwitchEnabled() {
+		return (
+			!!scrollAutoSwitch &&
+			scrollAutoSwitch.enable !== false &&
+			isHomePage &&
+			readStoredWallpaperMode() === "banner"
+		);
+	}
+
+	function setScrollCollapsed(next) {
+		if (next === scrollCollapsed) {
+			return;
+		}
+		scrollCollapsed = next;
+		const body = document.body;
+		body.classList.toggle(SCROLL_COLLAPSE_CLASS, next);
+		// 卡片转半透明、导航条转毛玻璃靠的就是这个现成的类，直接复用
+		body.classList.toggle("wallpaper-transparent", next);
+	}
+
+	function updateScrollAutoCollapse() {
+		if (!scrollAutoSwitchEnabled()) {
+			setScrollCollapsed(false);
+			return;
+		}
+
+		const scrollTop = window.scrollY || document.documentElement.scrollTop;
+		const viewport = window.innerHeight;
+		const thresholdVh =
+			typeof scrollAutoSwitch.thresholdVh === "number"
+				? scrollAutoSwitch.thresholdVh
+				: 40;
+
+		// 进入阈值高、退出阈值低，中间留一大段缓冲。
+		// 两个阈值要是贴在一起，滚动惯性会在边界上反复触发，横幅一闪一闪。
+		const enterAt = viewport * (thresholdVh / 100);
+		const exitAt = Math.max(24, viewport * 0.04);
+
+		if (!scrollCollapsed && scrollTop > enterAt) {
+			setScrollCollapsed(true);
+		} else if (scrollCollapsed && scrollTop <= exitAt) {
+			setScrollCollapsed(false);
 		}
 	}
 
+	function onScrollAutoSwitch() {
+		if (collapseTicking) {
+			return;
+		}
+		collapseTicking = true;
+		requestAnimationFrame(function () {
+			collapseTicking = false;
+			updateScrollAutoCollapse();
+		});
+	}
+
+	window.addEventListener("scroll", onScrollAutoSwitch, { passive: true });
+	window.addEventListener("resize", onScrollAutoSwitch, { passive: true });
+
 	// 监听壁纸模式变化，立即应用（不重载页面）
 	window.addEventListener("wallpaper-mode-change", function (_event) {
+		// 手动选择优先：改模式意味着用户要接管，先放手再按新模式重算
+		scrollCollapsed = false;
+		document.body.classList.remove(SCROLL_COLLAPSE_CLASS);
 		applyWallpaperMode();
 	});
 

@@ -42,7 +42,7 @@
 | 文章分享卡片 | 文章底部「分享到社交平台」卡 | `src/components/features/posts/ShareCard.astro` | 同目录 | `shareConfig` |
 | 看板娘 Pio | Live2D 模型，可拖拽、可交互 | `src/components/features/pio/Pio.svelte` | `public/pio/`（`static/pio.js`、`static/l2d.js`、`models/`） | `pioConfig` |
 | 樱花特效 | 全屏飘落樱花（Canvas） | `src/scripts/effects/sakura-effect.ts` | `src/utils/sakura-manager.ts` | `sakuraConfig` |
-| 壁纸与布局切换 | Banner / 全屏壁纸 / 无壁纸，列表 / 网格 | `src/components/control/LayoutSwitch.svelte` | `src/components/features/settings/WallpaperSwitch.svelte`、`src/components/misc/FullscreenWallpaper.astro` | `wallpaperMode`、`fullscreenWallpaperConfig`、`postListLayout` |
+| 壁纸与布局切换 | Banner / 全屏壁纸（+ 首页滚动自动折叠），列表 / 网格 | `src/components/control/LayoutSwitch.svelte` | `src/components/features/settings/WallpaperSwitch.svelte`、`src/components/misc/FullscreenWallpaper.astro` | `wallpaperMode`、`fullscreenWallpaperConfig`、`postListLayout` |
 | 深浅色与显示设置 | 明暗主题 + 主题色相调节 | `src/components/control/ThemeSwitch.svelte` | `src/components/features/settings/DisplaySettings.svelte`、`src/utils/setting-utils` | `themeColor`、`DEFAULT_THEME` |
 | 阅读进度条与浮动控件 | 顶部加载条 + 右下角一组 FAB | `src/components/control/PageProgressBar/` | `src/components/control/FloatingControls.astro`、`BackToTop.astro`、`BackToHome.astro` | `pageProgressBar`、`toc.floating`、`musicPlayerConfig` |
 | 滚动与面板增强 | KaTeX 横向滚动、点外关面板、灯箱 | `src/scripts/handlers/scroll-handler.ts` | `panel-handler.ts`、`fancybox-handler.ts`、`back-to-top-handler.ts` | 无（由 swup 管理器驱动） |
@@ -324,7 +324,8 @@ src/components/widgets/sidebar/SideBar.astro   （外层壳，决定左右两列
 三样东西常被混为一谈：
 
 - **布局模式**（列表 / 网格）：`src/components/control/LayoutSwitch.svelte`，切换时向 `window` 派发 `layoutChange` 自定义事件，并同时写 `sessionStorage` 与 `localStorage` 的 `postListLayout`。默认值在 `src/config.ts:97` 的 `postListLayout.defaultMode`（当前 `"list"`）。
-- **壁纸模式**（Banner / 全屏 / 无）：`src/components/features/settings/WallpaperSwitch.svelte`，常量在 `src/constants/constants.ts:37-39`，默认值在 `src/config.ts:115` 的 `wallpaperMode.defaultMode`（当前 `"banner"`）。
+- **壁纸模式**（Banner / 全屏，两种）：`src/components/features/settings/WallpaperSwitch.svelte`，常量在 `src/constants/constants.ts:39-40`，默认值在 `src/config.ts:115` 的 `wallpaperMode.defaultMode`（当前 `"banner"`）。曾在的第三种 `"none"`「无壁纸」已删除。
+- **首页滚动联动**：`src/config.ts:126-129` 的 `wallpaperMode.scrollAutoSwitch`（`enable`、`thresholdVh`）。逻辑在 `src/layouts/partials/GridScripts.astro:251-333`，样式在 `src/styles/banner.css:46-58`。只在 `/home/` 且当前为 banner 模式时生效，向下滚过阈值切「类全屏」态、滚回顶部还原。
 - **全屏壁纸本体**：`src/components/misc/FullscreenWallpaper.astro`，在 `MainGridLayout.astro:110` 使用，配置是 `src/config.ts:245` 的 `fullscreenWallpaperConfig`（zIndex、opacity、blur、carousel）。它支持从 `banner.imageApi` 拉远程图片。
 
 #### 深浅色与显示设置

@@ -153,10 +153,13 @@ export function getStoredTheme(): LIGHT_DARK_MODE {
 }
 
 export function getStoredWallpaperMode(): WALLPAPER_MODE {
-	return (
-		(localStorage.getItem("wallpaperMode") as WALLPAPER_MODE) ||
-		siteConfig.wallpaperMode.defaultMode
-	);
+	// "none" 模式已删除，但老访客的 localStorage 里可能还留着它，
+	// 直接丢给调用方会得到一个不存在的模式。认不出的一律回落默认值。
+	const stored = localStorage.getItem("wallpaperMode");
+	if (stored === "banner" || stored === "fullscreen") {
+		return stored;
+	}
+	return siteConfig.wallpaperMode.defaultMode;
 }
 
 export function setWallpaperMode(mode: WALLPAPER_MODE): void {

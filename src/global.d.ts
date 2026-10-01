@@ -37,7 +37,11 @@ declare global {
 		lang?: string;
 		toc?: SiteConfigTOC;
 		wallpaperMode?: {
-			defaultMode?: "banner" | "fullscreen" | "none";
+			defaultMode?: "banner" | "fullscreen";
+			scrollAutoSwitch?: {
+				enable?: boolean;
+				thresholdVh?: number;
+			};
 		};
 	}
 

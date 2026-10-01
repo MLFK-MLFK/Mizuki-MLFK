@@ -56,7 +56,7 @@ src/config.ts（真源，18 个 export）
 | `bangumi` / `bilibili` / `anime` | 见下 | `src/config.ts:71-91` | 番剧数据源 |
 | `postListLayout` | `{ defaultMode:"list", allowSwitch:true, categoryBar:{enable:true} }` | `src/config.ts:94-104` | 文章列表布局 |
 | `tagStyle` | `{ useNewStyle:false }` | `src/config.ts:107-110` | 标签新旧样式 |
-| `wallpaperMode` | `{ defaultMode:"banner", showModeSwitchOnMobile:"desktop" }` | `src/config.ts:113-122` | 壁纸模式 |
+| `wallpaperMode` | `{ defaultMode:"banner", showModeSwitchOnMobile:"desktop", scrollAutoSwitch:{ enable:true, thresholdVh:40 } }` | `src/config.ts:113-130` | 壁纸模式 + 首页滚动联动 |
 | `banner` | 见下 | `src/config.ts:124-193` | 顶部横幅 |
 | `toc` | `{ enable:true, mobileTop:true, desktopSidebar:true, floating:true, depth:2, useJapaneseBadge:true }` | `src/config.ts:194-201` | 目录系统 |
 | `showCoverInContent` | `true` | `src/config.ts:202` | 文章页是否显示封面 |
@@ -235,7 +235,7 @@ drawer: [profile, announcement, music-sidebar, categories, tags]
 类型系统帮你抓的几类错：
 
 1. **联合类型限值**。`timeZone` 是一个从 `-12` 到 `12` 的字面量联合（`src/types/config.ts:16-41`），写 `13` 直接报错。`lang` 是 10 个语言码的联合（`src/types/config.ts:43-53`），写 `"zh"` 报错。`themeColor.hue` 只是 `number`，不校验 0-360——范围是**运行时**在滑杆上限制的（`DisplaySettings.svelte:73-75`）。
-2. **拼写枚举**。`postListLayout.defaultMode` 是 `"list" | "grid"`（`src/types/config.ts:74`），`wallpaperMode.defaultMode` 是 `"banner" | "fullscreen" | "none"`（`src/types/config.ts:137`），写错字符串立刻被抓。
+2. **拼写枚举**。`postListLayout.defaultMode` 是 `"list" | "grid"`（`src/types/config.ts:74`），`wallpaperMode.defaultMode` 是 `"banner" | "fullscreen"`（`src/types/config.ts:136`），写错字符串立刻被抓。
 3. **组件名白名单**。`components.left/right/drawer` 是 `WidgetComponentType[]`（`src/types/config.ts:397-401`），写一个不存在的组件名报错。
 4. **`Record<LinkPreset, NavBarLink>` 的完备性**。`src/constants/link-presets.ts:7` 用 `Record<LinkPreset, NavBarLink>`，少写任何一个枚举成员都会编译失败。
 
@@ -324,7 +324,7 @@ return import.meta.env.PROD ? data.draft !== true : true;
 | `MAIN_PANEL_OVERLAPS_BANNER_HEIGHT` | `3.5`（rem） | `src/constants/constants.ts:28` |
 | `PAGE_WIDTH` | `90`（rem） | `src/constants/constants.ts:31` |
 | `UNCATEGORIZED` | `"uncategorized"` | `src/constants/constants.ts:34` |
-| `WALLPAPER_BANNER` / `_FULLSCREEN` / `_NONE` | `"banner"` / `"fullscreen"` / `"none"` | `src/constants/constants.ts:37-39` |
+| `WALLPAPER_BANNER` / `_FULLSCREEN` | `"banner"` / `"fullscreen"` | `src/constants/constants.ts:39-40` |
 
 `PAGE_SIZE` 只在一处用：`src/pages/home/[...page].astro:9` 导入、`:27` 传给 `paginate(allBlogPosts, { pageSize: PAGE_SIZE })`。
 

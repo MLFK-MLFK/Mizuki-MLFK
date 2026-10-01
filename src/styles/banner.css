@@ -31,6 +31,33 @@
 }
 
 /* ==========================================================================
+   首页滚动联动：滚过阈值后进入的「类全屏」态
+   ==========================================================================
+   由 GridScripts.astro 按滚动位置把这个类挂到 body 上（只在 /home/ 且用户选的是
+   banner 时）。它只改两个定位元素的可见性，不碰文档流：
+
+     #banner-wrapper          absolute（Banner.astro），淡出即可
+     [data-fullscreen-wallpaper]  fixed（FullscreenWallpaper.astro），显示出来
+     #banner-credit           横幅图片的来源署名，图没了它也该没
+
+   这两个元素的 display 平时由 JS 写行内样式控制，所以这里必须用 !important 压过去
+   —— 样式表里的 !important 是能盖掉行内非 important 声明的。
+   卡片转半透明 / 导航条转毛玻璃不在这里做，复用 body.wallpaper-transparent 那套。 */
+body.banner-scroll-collapsed #banner-wrapper {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.banner-scroll-collapsed #banner-credit {
+  opacity: 0 !important;
+  pointer-events: none !important;
+}
+
+body.banner-scroll-collapsed [data-fullscreen-wallpaper] {
+  display: block !important;
+}
+
+/* ==========================================================================
    无 Banner 模式布局
    ========================================================================== */
 body.no-banner-mode .absolute.w-full.z-30 {
@@ -458,14 +485,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
   }
 }
 
-/* ==========================================================================
-   无 Banner 布局
-   ========================================================================== */
-.no-banner-layout {
-  top: 5.5rem !important;
-  min-height: calc(100vh - 5.5rem) !important;
-}
-
 /* Grid 模式下隐藏右侧边栏 */
 .right-sidebar-container.hidden-in-grid-mode {
   display: none !important;
@@ -561,35 +580,6 @@ body.wallpaper-transparent #toc-inner-wrapper:has(table-of-contents[data-loaded=
 
   #main-grid[data-layout-mode="grid"] #swup-container {
     grid-column: 2 / 3;
-  }
-}
-
-/* ==========================================================================
-   移动端当 Banner 被禁用时的布局样式
-   ========================================================================== */
-@media (max-width: 1279px) {
-  .absolute.w-full.z-30.no-banner-layout {
-    top: 5.5rem !important;
-    min-height: calc(100vh - 5.5rem) !important;
-    transition: none !important;
-  }
-}
-
-/* 小屏手机当 Banner 被禁用时的布局样式 */
-@media (max-width: 479px) {
-  .absolute.w-full.z-30.no-banner-layout {
-    top: 5.5rem !important;
-    min-height: calc(100vh - 5.5rem) !important;
-    transition: none !important;
-  }
-}
-
-/* 平板设备当 Banner 被禁用时的布局样式 */
-@media (min-width: 768px) and (max-width: 1279px) {
-  .absolute.w-full.z-30.no-banner-layout {
-    top: 5.5rem !important;
-    min-height: calc(100vh - 5.5rem) !important;
-    transition: none !important;
   }
 }
 

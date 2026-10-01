@@ -277,7 +277,6 @@ enum I18nKey {
 	// Wallpaper mode
 	wallpaperBanner = "wallpaperBanner",
 	wallpaperFullscreen = "wallpaperFullscreen",
-	wallpaperNone = "wallpaperNone",
 
 	// 站点统计
 	siteStats = "siteStats",

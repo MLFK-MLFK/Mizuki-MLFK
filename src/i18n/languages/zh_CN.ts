@@ -286,7 +286,6 @@ export const zh_CN: Translation = {
 	// 壁纸模式
 	[Key.wallpaperBanner]: "横幅模式",
 	[Key.wallpaperFullscreen]: "全屏模式",
-	[Key.wallpaperNone]: "隐藏壁纸",
 
 	// 站点统计
 	[Key.siteStats]: "站点统计",

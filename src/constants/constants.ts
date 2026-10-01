@@ -34,6 +34,7 @@ export const PAGE_WIDTH = 90;
 export const UNCATEGORIZED = "uncategorized";
 
 // Wallpaper mode constants
+// 曾经还有第三种 "none"（无壁纸），已移除 —— 相关处理见 GridScripts.astro 里的
+// readStoredWallpaperMode()，老访客 localStorage 里残留的 "none" 会被归到默认模式。
 export const WALLPAPER_BANNER = "banner";
 export const WALLPAPER_FULLSCREEN = "fullscreen";
-export const WALLPAPER_NONE = "none";

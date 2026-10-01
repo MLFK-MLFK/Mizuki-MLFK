@@ -3,7 +3,6 @@ import type {
 	LIGHT_MODE,
 	WALLPAPER_BANNER,
 	WALLPAPER_FULLSCREEN,
-	WALLPAPER_NONE,
 } from "../constants/constants";
 
 export interface SiteConfig {
@@ -134,8 +133,14 @@ export interface SiteConfig {
 
 	// 壁纸模式配置
 	wallpaperMode: {
-		defaultMode: "banner" | "fullscreen" | "none"; // 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
+		defaultMode: "banner" | "fullscreen"; // 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸
 		showModeSwitchOnMobile?: "off" | "mobile" | "desktop" | "both"; // 整体布局方案切换按钮显示设置：off=隐藏，mobile=仅移动端，desktop=仅桌面端，both=全部显示
+		// 首页滚动联动：向下滚过阈值后横幅淡出、全屏壁纸接管；滚回顶部自动还原为横幅。
+		// 只在用户当前选择的是 banner 时生效（手动选了全屏的人不受影响）。
+		scrollAutoSwitch?: {
+			enable?: boolean; // 默认 true
+			thresholdVh?: number; // 触发阈值，相对视口高度的百分比，默认 40
+		};
 	};
 
 	banner: {
@@ -308,8 +313,7 @@ export type LIGHT_DARK_MODE = typeof LIGHT_MODE | typeof DARK_MODE;
 
 export type WALLPAPER_MODE =
 	| typeof WALLPAPER_BANNER
-	| typeof WALLPAPER_FULLSCREEN
-	| typeof WALLPAPER_NONE;
+	| typeof WALLPAPER_FULLSCREEN;
 
 export interface BlogPostData {
 	body: string;

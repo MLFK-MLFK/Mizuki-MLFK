@@ -155,19 +155,29 @@ document.documentElement.style.fontSize = `${scale * 100}%`;
 
 ### GridScripts.astro：body 类名的状态机
 
-`src/layouts/partials/GridScripts.astro:36-58` 在首次渲染前就把壁纸模式落到 body 上，避免闪烁；`:130-264` 的 `applyWallpaperMode()` 在运行期切换三种模式。它管理四个类和若干内联样式：
+`src/layouts/partials/GridScripts.astro:45-51` 的 `readStoredWallpaperMode()` 负责读档并做回落；`:54-140` 在首次渲染前就把壁纸模式落到 body 上，避免闪烁；`:143-249` 的 `applyWallpaperMode()` 在运行期切换模式。它管理这些类和若干内联样式：
 
 | 模式 | body 上的类 | banner | 全屏壁纸 | TOC |
 | --- | --- | --- | --- | --- |
 | `banner` | `enable-banner`（移除 `wallpaper-transparent`、`no-banner-mode`） | 显示 | 隐藏 | 滚到 banner 顶部内才加 `toc-hide` |
 | `fullscreen` | `wallpaper-transparent` + `no-banner-mode` | 隐藏 | 显示 | 始终显示 |
-| `none` | `no-banner-mode` | 隐藏 | 隐藏 | 始终显示 |
+| `banner` + 首页滚动折叠 | 上面 banner 那套**再加** `banner-scroll-collapsed` | 淡出（`opacity:0`） | 显示 | 同 banner |
 
-模式来源是 `localStorage.wallpaperMode`，缺省回落到 `siteConfig.wallpaperMode.defaultMode`。切换入口是 Navbar 里的 `WallpaperSwitch`（`src/components/organisms/navigation/Navbar.astro:115`），它派发 `wallpaper-mode-change` 自定义事件（`src/utils/setting-utils.ts:166`），`GridScripts.astro:267-269` 监听并立即重应用。`fullscreen` 下 navbar 被强制设成 `data-dynamic-transparent="semi"`，`none` 下强制 `none`（`:221-259`），与 config 里的透明模式无关。
+模式只有 `banner` / `fullscreen` 两种（曾经的 `"none"`「无壁纸」已删除）。模式来源是 `localStorage.wallpaperMode`，**认不出的值一律回落到 `siteConfig.wallpaperMode.defaultMode`** —— 老访客浏览器里残留的 `"none"` 就是走这条路，不会漏到 switch 里变成哪个分支都不匹配。切换入口是 Navbar 里的 `WallpaperSwitch`（`src/components/organisms/navigation/Navbar.astro:115`），它派发 `wallpaper-mode-change` 自定义事件（`src/utils/setting-utils.ts:165-171`），`GridScripts.astro:328-333` 监听并立即重应用。`fullscreen` 下 navbar 被强制设成 `data-dynamic-transparent="semi"`（`:234-238`），`banner` 下恢复成 config 里的 `banner.navbar.transparentMode`（`:191-205`）。
 
-注意这里有**两套同类逻辑**：服务端 `calculateGridLayout` 产出初始类名，运行期 GridScripts 再改 `data-layout-mode` 和 `right-sidebar-container` 的类，并在 `content:replace`（`:295-357`）和 `swup:page:view`（`:378-406`）里重新应用。新增布局状态时两边都要改。
+### 首页滚动联动（`banner-scroll-collapsed`）
 
-另外 `no-banner-layout` 与 `no-banner-mode` 是两个不同的类：前者由服务端在 `defaultMode === "none"` 时加在主内容容器上（`src/layouts/MainGridLayout.astro:140`，样式在 `src/styles/banner.css:464`），后者由 GridScripts 在运行期加到 body 上。别当成同一个。
+在 `/home/` 且当前模式为 `banner` 时，向下滚过 `wallpaperMode.scrollAutoSwitch.thresholdVh`（默认视口高度的 40%）就切到「类全屏」态，滚回顶部自动还原（`GridScripts.astro:251-333`，CSS 在 `src/styles/banner.css:46-58`）。
+
+三点必须知道：
+
+- **它只切一个 body 类，不调 `applyWallpaperMode()` 换模式。** 原因是重排：`#banner-wrapper` 是 `absolute`、`[data-fullscreen-wallpaper]` 是 `fixed`，两者都不占文档流，所以只改可见性不引起任何重排。而真去切模式会把主内容区从 `top:35vh` 挪到 `5.5rem`（`banner.css` 里 `body.no-banner-mode` 那条 `!important`），用户滚到一半时切过去，眼前内容会整体跳一屏。
+- **迟滞。** 进入阈值 = `thresholdVh`，退出阈值 = `max(24px, 4vh)`，中间留大段缓冲。两个阈值贴在一起的话，滚动惯性会在边界反复触发，横幅一闪一闪。
+- **只在用户选的是 banner 时生效。** 手动选了全屏的人本来就在全屏态，滚动不该再抢控制权；手动切模式时 `wallpaper-mode-change` 监听器会先把折叠态清掉再重算（`:328-333`）。
+
+注意这里有**两套同类逻辑**：服务端 `calculateGridLayout` 产出初始类名，运行期 GridScripts 再改 `data-layout-mode` 和 `right-sidebar-container` 的类，并在 `content:replace`（`:359-421`）和 `swup:page:view`（`:442-470`）里重新应用。新增布局状态时两边都要改。
+
+`no-banner-mode` 是加在 body 上的运行期类（全屏模式），别和 `banner-scroll-collapsed` 混为一谈：后者是首页滚动联动的折叠态，但它**特意也顺带挂上了 `wallpaper-transparent`**——卡片半透明、导航条转毛玻璃靠的就是那个现成的类，直接复用，不必新写样式。历史上还有个 `no-banner-layout` 服务端类，随 `"none"` 模式一起删掉了。
 
 ### AnalyticsScripts.astro
 
@@ -180,7 +190,7 @@ GTM 与 Clarity 都延迟到「用户首次交互」或 10 秒超时才加载（
 - 多图且 `carousel.enable` 走 Ken Burns + crossfade 轮播（`:51-65` 计算间隔／淡入／动画时长，`:229-594` 内联脚本），否则单图。轮播脚本带 `data-swup-ignore-script`，由自己的清理函数 `window.__bannerCarouselCleanup` 管生命周期（`:578-591`）。
 - 文字覆盖层、水波纹、图片署名。水波纹是四条 `<use>` 做视差。
 - `id="banner-wrapper"` / `id="banner"` / `.banner-text-overlay` 都是 swup 钩子依赖的选择器（`src/scripts/core/swup-config.ts:30-32`）。
-- **banner 高度与移动端隐藏的真源是 `src/styles/banner.css`**，不是 Layout.astro。改横幅高度、各断点尺寸要来这里：主内容顶部的 `35vh`（`banner.css:71-75`）、320–479px 的 70vh（`:121-128`）、`no-banner-mode` 的 `5.5rem`（`:36-38`）、以及 `.no-banner-layout`（`:464`）。
+- **banner 高度与移动端隐藏的真源是 `src/styles/banner.css`**，不是 Layout.astro。改横幅高度、各断点尺寸要来这里：主内容顶部的 `35vh`（`banner.css:100`）、小于 480px 与 768–1279px 两档的 70vh（`:151`、`:263`）、`no-banner-mode` 的 `5.5rem`（`:63-64`）、首页滚动折叠态（`:46-58`）。历史上还有个服务端类 `.no-banner-layout`，随 `"none"` 模式一并删除，别再去找它。
 
 ### SidebarColumn / RightSideBar / SideBar
 

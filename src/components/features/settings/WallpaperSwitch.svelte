@@ -2,7 +2,6 @@
 	import {
 		WALLPAPER_BANNER,
 		WALLPAPER_FULLSCREEN,
-		WALLPAPER_NONE,
 	} from "@constants/constants";
 	import I18nKey from "@i18n/i18nKey";
 	import { i18n } from "@i18n/translation";
@@ -30,11 +29,6 @@
 			mode: WALLPAPER_FULLSCREEN,
 			icon: "material-symbols:wallpaper",
 			label: I18nKey.wallpaperFullscreen,
-		},
-		{
-			mode: WALLPAPER_NONE,
-			icon: "material-symbols:hide-image-outline",
-			label: I18nKey.wallpaperNone,
 		},
 	];
 

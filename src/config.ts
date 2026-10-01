@@ -111,7 +111,7 @@ export const siteConfig: SiteConfig = {
 
 	// 壁纸模式配置
 	wallpaperMode: {
-		// 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸，none=无壁纸
+		// 默认壁纸模式：banner=顶部横幅，fullscreen=全屏壁纸
 		defaultMode: "banner",
 		// 整体布局方案切换按钮显示设置（默认："desktop"）
 		// "off" = 不显示
@@ -119,6 +119,14 @@ export const siteConfig: SiteConfig = {
 		// "desktop" = 仅在桌面端显示
 		// "both" = 在所有设备上显示
 		showModeSwitchOnMobile: "desktop",
+		// 首页滚动联动（仅对 /home/ 生效）
+		// 向下滚过阈值后，横幅淡出、全屏壁纸接管，卡片转为半透明；
+		// 滚回顶部自动还原成横幅。全程不改动文档流，不会跳屏。
+		// 只在当前选择的是 banner 时生效 —— 手动切到全屏的人不受滚动影响。
+		scrollAutoSwitch: {
+			enable: true,
+			thresholdVh: 40, // 滚过视口高度的 40% 即切换
+		},
 	},
 
 	banner: {
